@@ -1,0 +1,18 @@
+Package: dustgpu
+Title: Dust on a GPU
+Version: 0.1.0
+Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
+                    email = "rich.fitzjohn@gmail.com"),
+             person("John", "Lees", role = "aut"),
+             person("Imperial College of Science, Technology and Medicine",
+                    role = "cph"))
+Description: Working space for a dust/gpu prototype.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+LinkingTo:
+    cpp11
+Suggests:
+    testthat

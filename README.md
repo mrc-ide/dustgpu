@@ -31,3 +31,13 @@ Once a model is initialised on the CPU we need to get it to tell us:
 * How long is `model_internals` if it was arranged as an array of `real_t`
 * Convert from an initialised model to an interleaved array of data for each of these types
 * For odin.dust, a version of the `update` method that works with this data type
+
+Probably the safest thing to do is to save internal state as vectors of integers and reals rather than have them share one structure.
+
+## The example
+
+There is an example `inst/odin/sir.R` from which we generated `inst/dust/sir.cpp` and `src/sir.cpp` (`315d16e`)
+
+Because we need to make changes to dust's include files, I've duplicated them into `inst/dust` and adjusted the search paths (`1cc7017`)
+
+I'm then working against this commit to add the new features.

@@ -78,6 +78,14 @@ public:
     return _model.size_internal_int();
   }
 
+  void internal_real(real_t * dest, size_t stride) const {
+    _model.internal_real(dest, stride);
+  }
+
+  void internal_int(int * dest, size_t stride) const {
+    _model.internal_int(dest, stride);
+  }
+
 private:
   T _model;
   size_t _step;
@@ -244,6 +252,28 @@ public:
 
   size_t size_internal_int() const {
     return _particles.front().size_internal_int();
+  }
+
+  std::vector<real_t> internal_real() const {
+    const size_t len = size_internal_real();
+    const size_t stride = n_particles();
+    std::vector<real_t> ret(len * stride);
+    real_t* data = ret.data();
+    for (size_t i = 0; i < n_particles(); ++i) {
+      _particles[i].internal_real(data + i, stride);
+    }
+    return ret;
+  }
+
+  std::vector<int> internal_int() const {
+    const size_t len = size_internal_int();
+    const size_t stride = n_particles();
+    std::vector<int> ret(len * stride);
+    int* data = ret.data();
+    for (size_t i = 0; i < n_particles(); ++i) {
+      _particles[i].internal_int(data + i, stride);
+    }
+    return ret;
   }
 
 private:

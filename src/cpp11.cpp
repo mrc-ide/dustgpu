@@ -110,12 +110,28 @@ extern "C" SEXP _dustgpu_dust_sir_size_internal_int(SEXP ptr) {
     return cpp11::as_sexp(dust_sir_size_internal_int(cpp11::as_cpp<cpp11::decay_t<SEXP>>(ptr)));
   END_CPP11
 }
+// sir.cpp
+std::vector<double> dust_sir_internal_real(SEXP ptr);
+extern "C" SEXP _dustgpu_dust_sir_internal_real(SEXP ptr) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sir_internal_real(cpp11::as_cpp<cpp11::decay_t<SEXP>>(ptr)));
+  END_CPP11
+}
+// sir.cpp
+std::vector<int> dust_sir_internal_int(SEXP ptr);
+extern "C" SEXP _dustgpu_dust_sir_internal_int(SEXP ptr) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sir_internal_int(cpp11::as_cpp<cpp11::decay_t<SEXP>>(ptr)));
+  END_CPP11
+}
 
 extern "C" {
 /* .Call calls */
 extern SEXP _dustgpu_cpp_add(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_alloc(SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_has_openmp();
+extern SEXP _dustgpu_dust_sir_internal_int(SEXP);
+extern SEXP _dustgpu_dust_sir_internal_real(SEXP);
 extern SEXP _dustgpu_dust_sir_reorder(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_reset(SEXP, SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_rng_state(SEXP, SEXP);
@@ -133,6 +149,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dustgpu_cpp_add",                     (DL_FUNC) &_dustgpu_cpp_add,                     2},
     {"_dustgpu_dust_sir_alloc",              (DL_FUNC) &_dustgpu_dust_sir_alloc,              5},
     {"_dustgpu_dust_sir_has_openmp",         (DL_FUNC) &_dustgpu_dust_sir_has_openmp,         0},
+    {"_dustgpu_dust_sir_internal_int",       (DL_FUNC) &_dustgpu_dust_sir_internal_int,       1},
+    {"_dustgpu_dust_sir_internal_real",      (DL_FUNC) &_dustgpu_dust_sir_internal_real,      1},
     {"_dustgpu_dust_sir_reorder",            (DL_FUNC) &_dustgpu_dust_sir_reorder,            2},
     {"_dustgpu_dust_sir_reset",              (DL_FUNC) &_dustgpu_dust_sir_reset,              3},
     {"_dustgpu_dust_sir_rng_state",          (DL_FUNC) &_dustgpu_dust_sir_rng_state,          2},

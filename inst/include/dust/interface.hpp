@@ -271,6 +271,18 @@ size_t dust_size_internal_int(SEXP ptr) {
   return obj->size_internal_int();
 }
 
+template <typename T>
+std::vector<double> dust_internal_real(SEXP ptr) {
+  Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
+  return obj->internal_real();
+}
+
+template <typename T>
+std::vector<int> dust_internal_int(SEXP ptr) {
+  Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
+  return obj->internal_int();
+}
+
 // Trivial default implementation of a method for getting back
 // arbitrary information from the object.
 template <typename T>

@@ -59,3 +59,11 @@ dust_sir_size_internal_real <- function(ptr) {
 dust_sir_size_internal_int <- function(ptr) {
   .Call("_dustgpu_dust_sir_size_internal_int", ptr, PACKAGE = "dustgpu")
 }
+
+dust_sir_internal_real <- function(ptr) {
+  .Call("_dustgpu_dust_sir_internal_real", ptr, PACKAGE = "dustgpu")
+}
+
+dust_sir_internal_int <- function(ptr) {
+  .Call("_dustgpu_dust_sir_internal_int", ptr, PACKAGE = "dustgpu")
+}

@@ -8,6 +8,27 @@ template <typename T>
 T odin_sum1(const T * x, size_t from, size_t to);
 template <typename real_t, typename int_t>
 real_t odin_sum2(const real_t * x, int_t from_i, int_t to_i, int_t from_j, int_t to_j, int_t dim_x_1);
+
+template <typename T, typename U, typename Enable = void>
+size_t stride_copy(T dest, U src, size_t at, size_t stride) {
+  for (size_t i = 0; i < src.size(); ++i, at += stride) {
+    dest[at] = src[i];
+  }
+  return at;
+}
+
+template <typename T>
+size_t stride_copy(T dest, int src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
+template <typename T>
+size_t stride_copy(T dest, double src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
 class sir {
 public:
   typedef int int_t;
@@ -65,6 +86,40 @@ public:
     // dim_n_SI, dim_p_SI, dim_s_ij, dim_s_ij_1, dim_s_ij_2,
     // offset_variable_I, offset_variable_R
     return 14;
+  }
+
+  // Big mess of functions for converting from an object into flat storage
+  template <typename T>
+  void internal_real(T dest, size_t stride) const {
+    size_t j = 0;
+    j = stride_copy(dest, internal.beta, j, stride);
+    j = stride_copy(dest, internal.dt, j, stride);
+    j = stride_copy(dest, internal.p_IR, j, stride);
+    j = stride_copy(dest, internal.lambda, j, stride);
+    j = stride_copy(dest, internal.m, j, stride);
+    j = stride_copy(dest, internal.n_IR, j, stride);
+    j = stride_copy(dest, internal.n_SI, j, stride);
+    j = stride_copy(dest, internal.p_SI, j, stride);
+    j = stride_copy(dest, internal.s_ij, j, stride);
+  }
+
+  template <typename T>
+  void internal_int(T dest, size_t stride) const {
+    size_t j = 0;
+    j = stride_copy(dest, internal.dim_I, j, stride);
+    j = stride_copy(dest, internal.dim_R, j, stride);
+    j = stride_copy(dest, internal.dim_S, j, stride);
+    j = stride_copy(dest, internal.dim_lambda, j, stride);
+    j = stride_copy(dest, internal.dim_m, j, stride);
+    j = stride_copy(dest, internal.dim_m_1, j, stride);
+    j = stride_copy(dest, internal.dim_n_IR, j, stride);
+    j = stride_copy(dest, internal.dim_n_SI, j, stride);
+    j = stride_copy(dest, internal.dim_p_SI, j, stride);
+    j = stride_copy(dest, internal.dim_s_ij, j, stride);
+    j = stride_copy(dest, internal.dim_s_ij_1, j, stride);
+    j = stride_copy(dest, internal.dim_s_ij_2, j, stride);
+    j = stride_copy(dest, internal.offset_variable_I, j, stride);
+    j = stride_copy(dest, internal.offset_variable_R, j, stride);
   }
 
   std::vector<real_t> initial(size_t step) {
@@ -516,4 +571,14 @@ size_t dust_sir_size_internal_real(SEXP ptr) {
 [[cpp11::register]]
 size_t dust_sir_size_internal_int(SEXP ptr) {
   return dust_size_internal_int<sir>(ptr);
+}
+
+[[cpp11::register]]
+std::vector<double> dust_sir_internal_real(SEXP ptr) {
+  return dust_internal_real<sir>(ptr);
+}
+
+[[cpp11::register]]
+std::vector<int> dust_sir_internal_int(SEXP ptr) {
+  return dust_internal_int<sir>(ptr);
 }

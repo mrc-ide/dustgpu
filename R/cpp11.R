@@ -51,3 +51,11 @@ dust_sir_simulate <- function(r_steps, r_data, r_state, r_index, n_threads, r_se
 dust_sir_has_openmp <- function() {
   .Call("_dustgpu_dust_sir_has_openmp", PACKAGE = "dustgpu")
 }
+
+dust_sir_size_internal_real <- function(ptr) {
+  .Call("_dustgpu_dust_sir_size_internal_real", ptr, PACKAGE = "dustgpu")
+}
+
+dust_sir_size_internal_int <- function(ptr) {
+  .Call("_dustgpu_dust_sir_size_internal_int", ptr, PACKAGE = "dustgpu")
+}

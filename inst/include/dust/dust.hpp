@@ -70,6 +70,14 @@ public:
     }
   }
 
+  size_t size_internal_real() const {
+    return _model.size_internal_real();
+  }
+
+  size_t size_internal_int() const {
+    return _model.size_internal_int();
+  }
+
 private:
   T _model;
   size_t _step;
@@ -227,6 +235,15 @@ public:
   // because each rng stream is one jump away from the next.
   void rng_long_jump() {
     _rng.long_jump();
+  }
+
+  // New things
+  size_t size_internal_real() const {
+    return _particles.front().size_internal_real();
+  }
+
+  size_t size_internal_int() const {
+    return _particles.front().size_internal_int();
   }
 
 private:

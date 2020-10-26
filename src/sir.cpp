@@ -48,9 +48,25 @@ public:
   };
   sir(const init_t& data): internal(data) {
   }
-  size_t size() {
+  size_t size() const {
     return 1 + internal.dim_S + internal.dim_I + internal.dim_R;
   }
+
+  // We only return things needed to compute the update function;
+  // odin.dust knows what these are, but I am guessing here.
+  size_t size_internal_real() const {
+    // 3: beta, dt, p_IR
+    return 3 + internal.dim_lambda + internal.dim_m + internal.dim_n_IR +
+      internal.dim_n_SI + internal.dim_p_SI + internal.dim_s_ij;
+  }
+
+  size_t size_internal_int() const {
+    // 14: dim_I, dim_R, dim_S, dim_lambda, dim_m, dim_m_1, dim_n_IR,
+    // dim_n_SI, dim_p_SI, dim_s_ij, dim_s_ij_1, dim_s_ij_2,
+    // offset_variable_I, offset_variable_R
+    return 14;
+  }
+
   std::vector<real_t> initial(size_t step) {
     std::vector<real_t> state(1 + internal.dim_S + internal.dim_I + internal.dim_R);
     state[0] = internal.initial_time;
@@ -489,4 +505,15 @@ bool dust_sir_has_openmp() {
 #else
   return false;
 #endif
+}
+
+// these ones we're adding
+[[cpp11::register]]
+size_t dust_sir_size_internal_real(SEXP ptr) {
+  return dust_size_internal_real<sir>(ptr);
+}
+
+[[cpp11::register]]
+size_t dust_sir_size_internal_int(SEXP ptr) {
+  return dust_size_internal_int<sir>(ptr);
 }

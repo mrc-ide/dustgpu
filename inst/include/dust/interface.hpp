@@ -259,6 +259,18 @@ void dust_set_rng_state(SEXP ptr, cpp11::raws rng_state) {
   obj->set_rng_state(data);
 }
 
+template <typename T>
+size_t dust_size_internal_real(SEXP ptr) {
+  Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
+  return obj->size_internal_real();
+}
+
+template <typename T>
+size_t dust_size_internal_int(SEXP ptr) {
+  Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
+  return obj->size_internal_int();
+}
+
 // Trivial default implementation of a method for getting back
 // arbitrary information from the object.
 template <typename T>

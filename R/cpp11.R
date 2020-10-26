@@ -3,3 +3,51 @@
 cpp_add <- function(a, b) {
   .Call("_dustgpu_cpp_add", a, b, PACKAGE = "dustgpu")
 }
+
+dust_sir_alloc <- function(r_data, step, n_particles, n_threads, r_seed) {
+  .Call("_dustgpu_dust_sir_alloc", r_data, step, n_particles, n_threads, r_seed, PACKAGE = "dustgpu")
+}
+
+dust_sir_run <- function(ptr, step_end) {
+  .Call("_dustgpu_dust_sir_run", ptr, step_end, PACKAGE = "dustgpu")
+}
+
+dust_sir_set_index <- function(ptr, r_index) {
+  .Call("_dustgpu_dust_sir_set_index", ptr, r_index, PACKAGE = "dustgpu")
+}
+
+dust_sir_set_state <- function(ptr, r_state, r_step) {
+  .Call("_dustgpu_dust_sir_set_state", ptr, r_state, r_step, PACKAGE = "dustgpu")
+}
+
+dust_sir_reset <- function(ptr, r_data, step) {
+  .Call("_dustgpu_dust_sir_reset", ptr, r_data, step, PACKAGE = "dustgpu")
+}
+
+dust_sir_state <- function(ptr, r_index) {
+  .Call("_dustgpu_dust_sir_state", ptr, r_index, PACKAGE = "dustgpu")
+}
+
+dust_sir_step <- function(ptr) {
+  .Call("_dustgpu_dust_sir_step", ptr, PACKAGE = "dustgpu")
+}
+
+dust_sir_reorder <- function(ptr, r_index) {
+  invisible(.Call("_dustgpu_dust_sir_reorder", ptr, r_index, PACKAGE = "dustgpu"))
+}
+
+dust_sir_rng_state <- function(ptr, first_only) {
+  .Call("_dustgpu_dust_sir_rng_state", ptr, first_only, PACKAGE = "dustgpu")
+}
+
+dust_sir_set_rng_state <- function(ptr, rng_state) {
+  .Call("_dustgpu_dust_sir_set_rng_state", ptr, rng_state, PACKAGE = "dustgpu")
+}
+
+dust_sir_simulate <- function(r_steps, r_data, r_state, r_index, n_threads, r_seed) {
+  .Call("_dustgpu_dust_sir_simulate", r_steps, r_data, r_state, r_index, n_threads, r_seed, PACKAGE = "dustgpu")
+}
+
+dust_sir_has_openmp <- function() {
+  .Call("_dustgpu_dust_sir_has_openmp", PACKAGE = "dustgpu")
+}

@@ -44,8 +44,7 @@ website: pkgdown
 	./scripts/update_web.sh
 
 clean:
-	$(RM) src/*.o src/dust.so src/dust.dll \
-		tests/testthat/example/*.o tests/testthat/example/*.so
+	$(RM) src/*.o src/*.so src/*.dll src/*.gcov src/*.gcda src/gcno
 
 vignettes: vignettes/dust.Rmd vignettes/rng.Rmd
 	${RSCRIPT} -e 'tools::buildVignettes(dir = ".")'

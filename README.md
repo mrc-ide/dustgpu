@@ -41,3 +41,5 @@ There is an example `inst/odin/sir.R` from which we generated `inst/dust/sir.cpp
 Because we need to make changes to dust's include files, I've duplicated them into `inst/dust` and adjusted the search paths (`1cc7017`)
 
 I'm then working against this commit to add the new features.
+
+At `04fc091` we can extract the strided model internal state (this is exposed out as far as the R inteface but there's no need to do that at all).

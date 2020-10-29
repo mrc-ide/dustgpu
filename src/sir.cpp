@@ -158,7 +158,7 @@ public:
     return state;
   }
 
-  void update(size_t step, const real_t * state, dust::rng_state_t<real_t>& rng_state, real_t * state_next) {
+  void update(size_t step, const real_t * state, dust::rng_state_t<real_t> rng_state, real_t * state_next) {
     const real_t * S = state + 1;
     const real_t * I = state + internal.offset_variable_I;
     const real_t * R = state + internal.offset_variable_R;
@@ -460,7 +460,7 @@ real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t fr
 void update2(size_t step, const interleaved<sir::real_t> state,
              interleaved<int> internal_int,
              interleaved<sir::real_t> internal_real,
-             dust::rng_state_t<sir::real_t>& rng_state,
+             dust::rng_state_t<sir::real_t> rng_state,
              interleaved<sir::real_t> state_next) {
   typedef sir::real_t real_t;
   typedef int int_t;

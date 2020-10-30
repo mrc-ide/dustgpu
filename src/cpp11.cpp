@@ -26,6 +26,13 @@ extern "C" SEXP _dustgpu_dust_sir_run(SEXP ptr, SEXP step_end) {
   END_CPP11
 }
 // sir.cpp
+SEXP dust_sir_run2(SEXP ptr, size_t step_end);
+extern "C" SEXP _dustgpu_dust_sir_run2(SEXP ptr, SEXP step_end) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sir_run2(cpp11::as_cpp<cpp11::decay_t<SEXP>>(ptr), cpp11::as_cpp<cpp11::decay_t<size_t>>(step_end)));
+  END_CPP11
+}
+// sir.cpp
 SEXP dust_sir_set_index(SEXP ptr, cpp11::sexp r_index);
 extern "C" SEXP _dustgpu_dust_sir_set_index(SEXP ptr, SEXP r_index) {
   BEGIN_CPP11
@@ -136,6 +143,7 @@ extern SEXP _dustgpu_dust_sir_reorder(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_reset(SEXP, SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_rng_state(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_run(SEXP, SEXP);
+extern SEXP _dustgpu_dust_sir_run2(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_index(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_rng_state(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_state(SEXP, SEXP, SEXP);
@@ -155,6 +163,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dustgpu_dust_sir_reset",              (DL_FUNC) &_dustgpu_dust_sir_reset,              3},
     {"_dustgpu_dust_sir_rng_state",          (DL_FUNC) &_dustgpu_dust_sir_rng_state,          2},
     {"_dustgpu_dust_sir_run",                (DL_FUNC) &_dustgpu_dust_sir_run,                2},
+    {"_dustgpu_dust_sir_run2",               (DL_FUNC) &_dustgpu_dust_sir_run2,               2},
     {"_dustgpu_dust_sir_set_index",          (DL_FUNC) &_dustgpu_dust_sir_set_index,          2},
     {"_dustgpu_dust_sir_set_rng_state",      (DL_FUNC) &_dustgpu_dust_sir_set_rng_state,      2},
     {"_dustgpu_dust_sir_set_state",          (DL_FUNC) &_dustgpu_dust_sir_set_state,          3},

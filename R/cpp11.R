@@ -12,6 +12,10 @@ dust_sir_run <- function(ptr, step_end) {
   .Call("_dustgpu_dust_sir_run", ptr, step_end, PACKAGE = "dustgpu")
 }
 
+dust_sir_run2 <- function(ptr, step_end) {
+  .Call("_dustgpu_dust_sir_run2", ptr, step_end, PACKAGE = "dustgpu")
+}
+
 dust_sir_set_index <- function(ptr, r_index) {
   .Call("_dustgpu_dust_sir_set_index", ptr, r_index, PACKAGE = "dustgpu")
 }

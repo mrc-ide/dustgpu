@@ -37,6 +37,12 @@ sir <- R6::R6Class(
       m
     },
 
+    run2 = function(step_end) {
+      m <- dust_sir_run2(private$ptr_, step_end)
+      rownames(m) <- names(private$index_)
+      m
+    },
+
     set_index = function(index) {
       dust_sir_set_index(private$ptr_, index)
       private$index_ <- index

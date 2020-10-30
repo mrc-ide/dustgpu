@@ -172,6 +172,22 @@ cpp11::writable::doubles_matrix dust_run(SEXP ptr, int step_end) {
 }
 
 template <typename T>
+cpp11::writable::doubles_matrix dust_run2(SEXP ptr, int step_end) {
+  validate_size(step_end, "step_end");
+  Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
+  obj->run(step_end); // TODO: becomes run2, once that exists
+
+  const size_t n_state = obj->n_state();
+  const size_t n_particles = obj->n_particles();
+  const size_t len = n_state * n_particles;
+
+  std::vector<typename T::real_t> dat(len);
+  obj->state(dat);
+
+  return create_matrix(n_state, n_particles, dat);
+}
+
+template <typename T>
 cpp11::sexp dust_reset(SEXP ptr, cpp11::list r_data, int step) {
   validate_size(step, "step");
   typename T::init_t data = dust_data<T>(r_data);

@@ -85,6 +85,8 @@ public:
     }
   }
 
+  ptr
+
 private:
   const size_t n_;
   std::vector<uint64_t> state_;

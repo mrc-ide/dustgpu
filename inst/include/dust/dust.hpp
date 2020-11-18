@@ -11,6 +11,27 @@
 #endif
 
 template <typename T>
+class interleaved {
+public:
+  interleaved(T* data, size_t stride) : data_(data), stride_(stride) {}
+  T& operator[](size_t i) {
+    return data_[i * stride_];
+  }
+  const T& operator[](size_t i) const {
+    return data_[i * stride_];
+  }
+  interleaved<T> operator+(size_t by) {
+    return interleaved(data_ + by * stride_, stride_);
+  }
+  const interleaved<T> operator+(size_t by) const {
+    return interleaved(data_ + by * stride_, stride_);
+  }
+private:
+  T* data_;
+  size_t stride_;
+};
+
+template <typename T>
 class Particle {
 public:
   typedef typename T::init_t init_t;
@@ -160,6 +181,50 @@ public:
 #endif
     for (size_t i = 0; i < _particles.size(); ++i) {
       _particles[i].run(step_end, _rng.state(i));
+    }
+  }
+
+  void run2(const size_t step_end) {
+    // Using same name here as in the prototype for simplicity.
+    //
+    // In order to make the implementation here as easy to think about
+    // as possible, we'll create massive vectors for all the bits used
+    // here. We'll want to think about that generally when getting the
+    // GPU version really working as if we can avoid doing an
+    // extraction here and maintain state on the device as much as
+    // possible, things will likely be faster and easier. The
+    // initialisation below is far from the most efficient, but should
+    // work for now.
+    //
+    // We need to modify here on return:
+    //
+    // state
+    // rng_state
+    //
+    // as these are required to continue on with the model.
+
+    const size_t np = n_particles(), ny = n_state_full();
+    std::vector<real_t> y(np * ny);
+    std::vector<real_t> y_next(np * ny);
+    std::vector<real_t_ y_tmp(ny);
+    for (size_t i = 0; i < np; ++i) {
+      interleaved<real_y> yi(y.data() + i, np);
+      _particles[i].state_full(y_tmp.begin());
+      for (size_t j = 0; j < ny; ++j) {
+        yi[j] = y_tmp[j];
+      }
+    }
+
+    run_particles(step(), step_end, _particles.size(),
+                  y, y_next, internal_int(), internal_real(),
+                  _rng.state(0));
+
+    for (size_t i = 0; i < np; ++i) {
+      interleaved<real_y> yi(y.data() + i, np);
+      for (size_t j = 0; j < ny; ++j) {
+        y_tmp[j] = yi[j];
+      }
+      _particles[i].set_state(y_tmp.begin());
     }
   }
 
@@ -342,6 +407,40 @@ dust_simulate(const std::vector<size_t> steps,
   }
 
   return ret;
+}
+
+// Alternative
+template <typename T>
+void update2(size_t step,
+             const interleaved<typename T::real_t> state,
+             interleaved<int> internal_int,
+             interleaved<typename T::real_t> internal_real,
+             dust::rng_state_t<typenme T::real_t> rng_state,
+             interleaved<typename T::real_t> state_next);
+
+template <typename real_t>
+void run_particles(size_t step_from, size_t step_to, size_t n_particles,
+                   std::vector<real_t>& state,
+                   std::vector<real_t>& state_next,
+                   std::vector<int>& internal_int,
+                   std::vector<real_t>& internal_real,
+                   dust::rng_state_t<real_t> rng_state) {
+  for (size_t i = 0; i < n_particles; ++i) {
+    while (_step < step_end) {
+      // perhaps this should be a static method of the model? that
+      // might be easier to deal with
+      update2<model>
+      _model.update(_step, _y.data(), rng_state, _y_swap.data());
+      _step++;
+      std::swap(_y, _y_swap);
+    }
+  }
+
+  // We only *have* to do this on odd numbers of steps, but it is a
+  // tiny cost compared to everything else.
+  //
+  // TODO: add some explanation as to why this is needed!
+  std::copy(state_next.begin(), state_next.end(), state.begin());
 }
 
 #endif

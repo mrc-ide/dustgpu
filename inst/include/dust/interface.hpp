@@ -175,7 +175,7 @@ template <typename T>
 cpp11::writable::doubles_matrix dust_run2(SEXP ptr, int step_end) {
   validate_size(step_end, "step_end");
   Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
-  obj->run(step_end); // TODO: becomes run2, once that exists
+  obj->run2(step_end);
 
   const size_t n_state = obj->n_state();
   const size_t n_particles = obj->n_particles();

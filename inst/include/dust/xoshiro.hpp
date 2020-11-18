@@ -36,6 +36,9 @@ public:
   uint64_t& operator[](size_t i) {
     return state_[i * stride_];
   }
+  rng_state_t<real_t> operator+(size_t i) {
+    return rng_state_t<real_t>(state + i, stride);
+  }
 private:
   uint64_t * state_;
   size_t stride_;

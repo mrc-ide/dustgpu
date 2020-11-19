@@ -37,7 +37,7 @@ public:
     return state_[i * stride_];
   }
   rng_state_t<real_t> operator+(size_t i) {
-    return rng_state_t<real_t>(state + i, stride);
+    return rng_state_t<real_t>(state_ + i, stride_);
   }
 private:
   uint64_t * state_;

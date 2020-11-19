@@ -10,26 +10,143 @@
 #include <omp.h>
 #endif
 
+// TODO: eventually we could consider making data a fixed length
+// array and templating the size. Not really sure how much better
+// this would be
+
+// CUDA: mark operators as __device__, change to cudaMalloc etc
+// Probably want host data and device data in here, with methods
+// to copy between
+// CUDA: Do we need cudaGetSymbolAddress() when doing the move
+// and swapping pointers?
+template <typename T>
+class DeviceArray {
+public:
+  // Constructor from vector
+  DeviceArray(std::vector<T>& data, size_t stride)
+    : size_(data.size()),
+      stride_(stride) {
+    data_ = (T*) malloc(size_ * sizeof(T));
+    if (!data_) {
+      throw std::runtime_error("malloc failed");
+    }
+    memcpy(data_, data.data(), size_);
+  }
+  // TODO: should we just '= delete' the rule of five methods below?
+  // Copy
+  DeviceArray(const DeviceArray& other)
+    : _size(other.size_),
+      _stride(other.stride_) {
+      memcpy(data_, other.data_, size_);
+  }
+  // Copy assign
+  DeviceArray& operator=(const DeviceArray& other) {
+    if (this != &other) {
+      free(data_);
+      size_ = other.size_;
+      stride_ = other.stride_;
+      memcpy(data_, other.data_, size_)
+    }
+    return *this;
+  }
+  // Move
+  DeviceArray(DeviceArray&& other) : data_(nullptr), stride_(0) {
+    data_ = other.data_;
+    stride_ = other.stride_;
+    other.data_ = nullptr;
+    other.stride_ = 0;
+  }
+  // Move assign
+  DeviceArray& operator=(DeviceArray&& other) {
+    if (this != &other) {
+      free(data_);
+      data_ = other.data_;
+      stride_ = other.stride_;
+      other.data_ = nullptr;
+      other.stride_ = 0;
+    }
+    return *this;
+  }
+  ~DeviceArray() {
+    free(data_);
+  }
+  T* data() {
+    return data_;
+  }
+  size_t stride() const {
+    return _stride;
+  }
+private:
+  T* data_;
+  size_t size_;
+  size_t stride_;
+};
+
+// The class from before, which is a light wrapper around a pointer
+// This can be used within a kernel with copying memory
+// Issue is that there's no way to tell whether the data being referred to
+// has been freed or not, so a segfault could well be on the cards.
+// tbh the previous implementation also had this issue, accessing a pointer
+// through [] it does not control
 template <typename T>
 class interleaved {
 public:
-  interleaved(T* data, size_t stride) : data_(data), stride_(stride) {}
+  offsetInterleaved(DeviceArray<T>& data, size_t offset)
+    : data_(data.data() + offset),
+      stride_(data.stride()) {}
+  // I feel like there might be some way to define these with inheritance
+  // but not sure as this would be the base class, and it would take the child
+  // class in the constructor
   T& operator[](size_t i) {
     return data_[i * stride_];
   }
   const T& operator[](size_t i) const {
     return data_[i * stride_];
   }
-  interleaved<T> operator+(size_t by) {
-    return interleaved(data_ + by * stride_, stride_);
+  offsetInterleaved<T> operator+(size_t by) {
+    return offsetInterleaved(data_ + by * stride_, stride_);
   }
   const interleaved<T> operator+(size_t by) const {
-    return interleaved(data_ + by * stride_, stride_);
+    return offsetInterleaved(data_ + by * stride_, stride_);
   }
 private:
   T* data_;
   size_t stride_;
 };
+
+// For GPU class:
+// constructor which take interleaved and copies to device
+// update functions (copy in each direction)
+// selected copy function
+// some bool which notes whether device/host memory is old
+
+template <typename T, typename U, typename Enable = void>
+size_t destride_copy(T dest, U src, size_t at, size_t stride) {
+  for (size_t i = at; i < src.size(); ++at, i += stride) {
+    dest[at] = src[i];
+  }
+  return at;
+}
+
+template <typename T, typename U, typename Enable = void>
+size_t stride_copy(T dest, U src, size_t at, size_t stride) {
+  for (size_t i = 0; i < src.size(); ++i, at += stride) {
+    dest[at] = src[i];
+  }
+  return at;
+}
+
+template <typename T>
+size_t stride_copy(T dest, int src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
+template <typename T>
+size_t stride_copy(T dest, double src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
 
 template <typename T>
 class Particle {
@@ -124,7 +241,9 @@ public:
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const std::vector<uint64_t>& seed) :
     _n_threads(n_threads),
-    _rng(n_particles, seed) {
+    _rng(n_particles, seed),
+    _stale_host(false),
+    _stale_device(true) {
     initialise(data, step, n_particles);
   }
 
@@ -202,25 +321,30 @@ public:
     // rng_state
     //
     // as these are required to continue on with the model.
-
-    const size_t np = n_particles(), ny = n_state_full();
-    std::vector<real_t> y(np * ny);
-    std::vector<real_t> y_next(np * ny);
-    std::vector<real_t_ y_tmp(ny);
-    for (size_t i = 0; i < np; ++i) {
-      interleaved<real_y> yi(y.data() + i, np);
-      _particles[i].state_full(y_tmp.begin());
-      for (size_t j = 0; j < ny; ++j) {
-        yi[j] = y_tmp[j];
+    if (_stale_device) {
+      const size_t np = n_particles(), ny = n_state_full();
+      std::vector<real_t> y(np * ny);
+      std::vector<real_t> y_next(np * ny);
+      std::vector<real_t> y_tmp(ny);
+      size_t j = 0;
+      for (size_t i = 0; i < np; ++i) {
+        _particles[i].state_full(y_tmp.begin());
+        j = stride_copy(y, y_tmp, j, np);
       }
+      // Eventually want to only make interleaved class once
+      // Could add to dust obj, and have device init function
+      interleaved<real_t> yi(y.data(), np);
+      interleaved<real_t> y_next(y_next.data(), np);
+      _stale_device = false;
     }
 
+    _stale_host = true;
     run_particles(step(), step_end, _particles.size(),
-                  y, y_next, internal_int(), internal_real(),
+                  yi, y_next, internal_int(), internal_real(),
                   _rng.state(0));
 
     for (size_t i = 0; i < np; ++i) {
-      interleaved<real_y> yi(y.data() + i, np);
+      interleaved<real_t> yi(y.data() + i, np);
       for (size_t j = 0; j < ny; ++j) {
         y_tmp[j] = yi[j];
       }
@@ -346,6 +470,9 @@ private:
   const size_t _n_threads;
   dust::pRNG<real_t> _rng;
   std::vector<Particle<T>> _particles;
+  bool _stale_host, _stale_device;
+  DeviceArray<real_t> _yi;
+  DeviceArray<real_t> _yi_next;
 
   void initialise(const init_t data, const size_t step,
                   const size_t n_particles) {
@@ -415,24 +542,29 @@ void update2(size_t step,
              const interleaved<typename T::real_t> state,
              interleaved<int> internal_int,
              interleaved<typename T::real_t> internal_real,
-             dust::rng_state_t<typenme T::real_t> rng_state,
+             dust::rng_state_t<typename T::real_t> rng_state,
              interleaved<typename T::real_t> state_next);
 
+// This will become the __global__ kernel
 template <typename real_t>
 void run_particles(size_t step_from, size_t step_to, size_t n_particles,
-                   std::vector<real_t>& state,
-                   std::vector<real_t>& state_next,
-                   std::vector<int>& internal_int,
-                   std::vector<real_t>& internal_real,
+                   interleaved<real_t>& state,
+                   interleaved<real_t>& state_next,
+                   interleaved<int>& internal_int,
+                   interleaved<real_t>& internal_real,
                    dust::rng_state_t<real_t> rng_state) {
+  // int p_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  // if (p_idx < n_particles) {
   for (size_t i = 0; i < n_particles; ++i) {
-    while (_step < step_end) {
+    for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       // perhaps this should be a static method of the model? that
       // might be easier to deal with
-      update2<model>
-      _model.update(_step, _y.data(), rng_state, _y_swap.data());
-      _step++;
-      std::swap(_y, _y_swap);
+      update2(step, state, internal_int, internal_real, rng_state, state_next)
+
+      // Check this move is correct in CUDA (may need getSymbolAddress)
+      interleaved<real_t> tmp = state;
+      state = state_next;
+      state_next = tmp;
     }
   }
 
@@ -440,7 +572,8 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
   // tiny cost compared to everything else.
   //
   // TODO: add some explanation as to why this is needed!
-  std::copy(state_next.begin(), state_next.end(), state.begin());
+  // JL: I don't understand why this is needed. Removing for now
+  // std::copy(state_next.begin(), state_next.end(), state.begin());
 }
 
 #endif

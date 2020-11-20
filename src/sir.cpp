@@ -457,16 +457,16 @@ void update2(size_t step, const interleaved<sir::real_t> state,
 
   // TODO - alternative would be to make offsets relative, then could
   // use operator+ after first assignment
-  offsetInterleaved<real_t> lambda(internal_real, offset_internal_lambda);
-  offsetInterleaved<real_t> m(internal_real, offset_internal_m);
-  offsetInterleaved<real_t> n_IR(internal_real, offset_internal_n_IR);
-  offsetInterleaved<real_t> n_SI(internal_real, offset_internal_n_SI);
-  offsetInterleaved<real_t> p_SI(internal_real, offset_internal_p_SI);
-  offsetInterleaved<real_t> s_ij(internal_real, offset_internal_s_ij);
+  interleaved<real_t> lambda = internal_real + offset_internal_lambda;
+  interleaved<real_t> m = internal_real + offset_internal_m;
+  interleaved<real_t> n_IR = internal_real + offset_internal_n_IR;
+  interleaved<real_t> n_SI = internal_real + offset_internal_n_SI;
+  interleaved<real_t> p_SI = internal_real + offset_internal_p_SI;
+  interleaved<real_t> s_ij = internal_real + offset_internal_s_ij;
 
-  offsetInterleaved<real_t> S(state, 1);
-  offsetInterleaved<real_t> I(state, offset_variable_I);
-  offsetInterleaved<real_t> R(state, offset_variable_R);
+  interleaved<real_t> S = state + 1;
+  interleaved<real_t> I = state + offset_variable_I;
+  interleaved<real_t> R = state + offset_variable_R;
 
   real_t N = odin_sum1(S, 0, dim_S) + odin_sum1(I, 0, dim_I) + odin_sum1(R, 0, dim_R);
   state_next[0] = (step + 1) * dt;

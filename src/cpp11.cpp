@@ -90,10 +90,10 @@ extern "C" SEXP _dustgpu_dust_sir_set_rng_state(SEXP ptr, SEXP rng_state) {
   END_CPP11
 }
 // sir.cpp
-SEXP dust_sir_simulate(cpp11::sexp r_steps, cpp11::list r_data, cpp11::doubles_matrix r_state, cpp11::sexp r_index, const size_t n_threads, cpp11::sexp r_seed);
-extern "C" SEXP _dustgpu_dust_sir_simulate(SEXP r_steps, SEXP r_data, SEXP r_state, SEXP r_index, SEXP n_threads, SEXP r_seed) {
+SEXP dust_sir_simulate(cpp11::sexp r_steps, cpp11::list r_data, cpp11::doubles_matrix r_state, cpp11::sexp r_index, const size_t n_threads, cpp11::sexp r_seed, bool gpu);
+extern "C" SEXP _dustgpu_dust_sir_simulate(SEXP r_steps, SEXP r_data, SEXP r_state, SEXP r_index, SEXP n_threads, SEXP r_seed, SEXP gpu) {
   BEGIN_CPP11
-    return cpp11::as_sexp(dust_sir_simulate(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_steps), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix>>(r_state), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index), cpp11::as_cpp<cpp11::decay_t<const size_t>>(n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed)));
+    return cpp11::as_sexp(dust_sir_simulate(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_steps), cpp11::as_cpp<cpp11::decay_t<cpp11::list>>(r_data), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix>>(r_state), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_index), cpp11::as_cpp<cpp11::decay_t<const size_t>>(n_threads), cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(r_seed), cpp11::as_cpp<cpp11::decay_t<bool>>(gpu)));
   END_CPP11
 }
 // sir.cpp
@@ -147,7 +147,7 @@ extern SEXP _dustgpu_dust_sir_run2(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_index(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_rng_state(SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_set_state(SEXP, SEXP, SEXP);
-extern SEXP _dustgpu_dust_sir_simulate(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _dustgpu_dust_sir_simulate(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _dustgpu_dust_sir_size_internal_int(SEXP);
 extern SEXP _dustgpu_dust_sir_size_internal_real(SEXP);
 extern SEXP _dustgpu_dust_sir_state(SEXP, SEXP);
@@ -167,7 +167,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dustgpu_dust_sir_set_index",          (DL_FUNC) &_dustgpu_dust_sir_set_index,          2},
     {"_dustgpu_dust_sir_set_rng_state",      (DL_FUNC) &_dustgpu_dust_sir_set_rng_state,      2},
     {"_dustgpu_dust_sir_set_state",          (DL_FUNC) &_dustgpu_dust_sir_set_state,          3},
-    {"_dustgpu_dust_sir_simulate",           (DL_FUNC) &_dustgpu_dust_sir_simulate,           6},
+    {"_dustgpu_dust_sir_simulate",           (DL_FUNC) &_dustgpu_dust_sir_simulate,           7},
     {"_dustgpu_dust_sir_size_internal_int",  (DL_FUNC) &_dustgpu_dust_sir_size_internal_int,  1},
     {"_dustgpu_dust_sir_size_internal_real", (DL_FUNC) &_dustgpu_dust_sir_size_internal_real, 1},
     {"_dustgpu_dust_sir_state",              (DL_FUNC) &_dustgpu_dust_sir_state,              2},

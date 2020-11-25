@@ -28,7 +28,7 @@ public:
     : size_(data.size()),
       stride_(stride) {
     // DEBUG
-    printf("malloc of size %ul\n", size_ * sizeof(T));
+    printf("malloc of size %lu\n", size_ * sizeof(T));
     data_ = (T*) malloc(size_ * sizeof(T));
     if (!data_) {
       throw std::runtime_error("malloc failed");
@@ -191,7 +191,7 @@ void update2(size_t step,
              interleaved<typename T::real_t> state_next);
 
 // This will become the __global__ kernel
-template <typename real_t>
+template <typename real_t, typename T>
 void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                    DeviceArray<real_t>& state,
                    DeviceArray<real_t>& state_next,
@@ -411,7 +411,7 @@ public:
     refresh_device();
     _stale_host = true;
 
-    run_particles(step(), step_end, _particles.size(),
+    run_particles<real_t, T>(step(), step_end, _particles.size(),
                   _yi, _yi_next, _internal_int, _internal_real,
                   _rng.state(0));
 
@@ -575,8 +575,8 @@ private:
       _particles[i].internal_int(int_data + i, stride);
       _particles[i].internal_real(real_data + i, stride);
     }
-    DeviceArray<int> _internal_int(int_data, stride);
-    DeviceArray<real_t> _internal_real(real_data, stride);
+    DeviceArray<int> _internal_int(int_vec, stride);
+    DeviceArray<real_t> _internal_real(real_vec, stride);
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -588,11 +588,14 @@ private:
       std::vector<real_t> y_tmp(ny); // Individual particle state
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
       size_t j = 0;
+#ifdef _OPENMP
+      #pragma omp parallel for schedule(static) num_threads(_n_threads)
+#endif
       for (size_t i = 0; i < np; ++i) {
         _particles[i].state_full(y_tmp.begin());
         j = stride_copy(y, y_tmp, j, np);
       }
-      _yi.setArray(y.data()); // H -> D
+      _yi.setArray(y); // H -> D
       _stale_device = false;
     }
   }

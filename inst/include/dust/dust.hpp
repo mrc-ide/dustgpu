@@ -23,6 +23,18 @@ class DeviceArray {
 public:
   // Default constructor
   DeviceArray() : data_(nullptr), size_(0), stride_(1) {}
+  // Constructor to allocate empty memory
+  DeviceArray(size_t size, size_t stride) : size_(size), stride_(stride) {
+    // DEBUG
+    printf("malloc of size %lu\n", size_ * sizeof(T));
+    data_ = (T*) malloc(size_ * sizeof(T));
+    if (!data_) {
+      throw std::runtime_error("malloc failed");
+    }
+    // DEBUG
+    printf("memset (constructor)\n");
+    memset(data_, 0, size_);
+  }
   // Constructor from vector
   DeviceArray(std::vector<T>& data, size_t stride)
     : size_(data.size()),
@@ -34,7 +46,7 @@ public:
       throw std::runtime_error("malloc failed");
     }
     // DEBUG
-    printf("memcpy\n");
+    printf("memcpy (constructor)\n");
     memcpy(data_, data.data(), size_);
   }
   // TODO: should we just '= delete' the rule of five methods below?
@@ -43,7 +55,7 @@ public:
     : size_(other.size_),
       stride_(other.stride_) {
       // DEBUG
-      printf("memcpy\n");
+      printf("memcpy (copy)\n");
       memcpy(data_, other.data_, size_);
   }
   // Copy assign
@@ -53,7 +65,7 @@ public:
       size_ = other.size_;
       stride_ = other.stride_;
       // DEBUG
-      printf("memcpy\n");
+      printf("memcpy (copy assign)\n");
       memcpy(data_, other.data_, size_);
     }
     return *this;
@@ -71,7 +83,7 @@ public:
   DeviceArray& operator=(DeviceArray&& other) {
     if (this != &other) {
       // DEBUG
-      printf("free\n");
+      printf("free (move assign)\n");
       free(data_);
       data_ = other.data_;
       size_ = other.size_;
@@ -84,7 +96,7 @@ public:
   }
   ~DeviceArray() {
     // DEBUG
-    printf("free\n");
+    printf("free (destructor)\n");
     free(data_);
   }
   void getArray(std::vector<T>& dst) const {
@@ -96,6 +108,7 @@ public:
     size_ = src.size();
     // DEBUG
     printf("memcpy (set)\n");
+    // TODO: segfault here!
     memcpy(data_, src.data(), size_);
   }
   T* data() {
@@ -577,6 +590,10 @@ private:
     }
     DeviceArray<int> _internal_int(int_vec, stride);
     DeviceArray<real_t> _internal_real(real_vec, stride);
+
+    // Set state (on device)
+    DeviceArray<real_t> _yi(n * n_particles, n_particles);
+    DeviceArray<real_t> _yi_next(n * n_particles, n_particles);
   }
 
   // CUDA: eventually we need to have more refined methods here:

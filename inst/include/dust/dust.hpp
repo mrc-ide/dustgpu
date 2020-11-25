@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <cstring> // memcpy - remove this when CUDA done
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -20,6 +21,8 @@
 template <typename T>
 class DeviceArray {
 public:
+  // Default constructor
+  DeviceArray() : data_(nullptr), size_(0), stride_(1) {}
   // Constructor from vector
   DeviceArray(std::vector<T>& data, size_t stride)
     : size_(data.size()),
@@ -37,8 +40,8 @@ public:
   // TODO: should we just '= delete' the rule of five methods below?
   // Copy
   DeviceArray(const DeviceArray& other)
-    : _size(other.size_),
-      _stride(other.stride_) {
+    : size_(other.size_),
+      stride_(other.stride_) {
       // DEBUG
       printf("memcpy\n");
       memcpy(data_, other.data_, size_);
@@ -51,18 +54,18 @@ public:
       stride_ = other.stride_;
       // DEBUG
       printf("memcpy\n");
-      memcpy(data_, other.data_, size_)
+      memcpy(data_, other.data_, size_);
     }
     return *this;
   }
   // Move
-  DeviceArray(DeviceArray&& other) : data_(nullptr), size_(0), stride_(0) {
+  DeviceArray(DeviceArray&& other) : data_(nullptr), size_(0), stride_(1) {
     data_ = other.data_;
     size_ = other.size_;
     stride_ = other.stride_;
     other.data_ = nullptr;
     other.size_ = 0;
-    other.stride_ = 0;
+    other.stride_ = 1;
   }
   // Move assign
   DeviceArray& operator=(DeviceArray&& other) {
@@ -75,7 +78,7 @@ public:
       stride_ = other.stride_;
       other.data_ = nullptr;
       other.size_ = 0;
-      other.stride_ = 0;
+      other.stride_ = 1;
     }
     return *this;
   }
@@ -127,6 +130,9 @@ public:
   interleaved(DeviceArray<T>& data, size_t offset)
     : data_(data.data() + offset),
       stride_(data.stride()) {}
+  interleaved(T* data, size_t stride)
+    : data_(data),
+      stride_(stride) {}
   // I feel like there might be some way to define these with inheritance
   // but not sure as this would be the base class, and it would take the child
   // class in the constructor
@@ -197,12 +203,12 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
   for (size_t i = 0; i < n_particles; ++i) {
     interleaved<real_t> p_state(state, i);
     interleaved<real_t> p_state_next(state_next, i);
-    interleaved<real_t> p_internal_int(internal_int, i);
+    interleaved<int> p_internal_int(internal_int, i);
     interleaved<real_t> p_internal_real(internal_real, i);
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       // perhaps this should be a static method of the model? that
       // might be easier to deal with
-      update2(curr_step,
+      update2<T>(curr_step,
               p_state,
               p_internal_int,
               p_internal_real,
@@ -324,6 +330,7 @@ public:
   void reset(const init_t data, const size_t step) {
     const size_t n_particles = _particles.size();
     _stale_device = true;
+    _stale_host = false;
     initialise(data, step, n_particles);
   }
 
@@ -418,7 +425,7 @@ public:
     }
   }
 
-  void state(std::vector<real_t>& end_state) const {
+  void state(std::vector<real_t>& end_state) {
     refresh_host();
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
@@ -429,7 +436,7 @@ public:
   }
 
   void state(std::vector<size_t> index,
-             std::vector<real_t>& end_state) const {
+             std::vector<real_t>& end_state) {
     refresh_host();
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
@@ -439,7 +446,7 @@ public:
     }
   }
 
-  void state_full(std::vector<real_t>& end_state) const {
+  void state_full(std::vector<real_t>& end_state) {
     const size_t n = n_state_full();
     refresh_host();
 #ifdef _OPENMP
@@ -516,6 +523,18 @@ public:
     return _particles.front().size_internal_int();
   }
 
+  std::vector<real_t> internal_real() const {
+    std::vector<real_t> ret(size_internal_real());
+    _internal_real.getArray(ret);
+    return(ret);
+  }
+
+  std::vector<int> internal_int() const {
+    std::vector<int> ret(size_internal_int());
+    _internal_int.getArray(ret);
+    return(ret);
+  }
+
 private:
   std::vector<size_t> _index;
   const size_t _n_threads;
@@ -547,17 +566,17 @@ private:
     // Set internal state (on device)
     size_t int_len = size_internal_int();
     size_t real_len = size_internal_real();
-    const size_t stride = n_particles();
+    const size_t stride = n_particles;
     std::vector<int> int_vec(int_len * stride);
     std::vector<real_t> real_vec(real_len * stride);
     int* int_data = int_vec.data();
     real_t* real_data = real_vec.data();
-    for (size_t i = 0; i < n_particles(); ++i) {
+    for (size_t i = 0; i < n_particles; ++i) {
       _particles[i].internal_int(int_data + i, stride);
-      _particles[i].internal_real(real_data + i, stride)
+      _particles[i].internal_real(real_data + i, stride);
     }
-    DeviceArray<int> _internal_int(ret, stride);
-    DeviceArray<real_t> _internal_real(ret, stride);
+    DeviceArray<int> _internal_int(int_data, stride);
+    DeviceArray<real_t> _internal_real(real_data, stride);
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -573,7 +592,7 @@ private:
         _particles[i].state_full(y_tmp.begin());
         j = stride_copy(y, y_tmp, j, np);
       }
-      _yi.setArray(y.data(), np)); // H -> D
+      _yi.setArray(y.data()); // H -> D
       _stale_device = false;
     }
   }

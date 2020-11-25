@@ -58,7 +58,8 @@ cpp11::writable::doubles dust_simulate(cpp11::sexp r_steps,
                                        cpp11::doubles_matrix r_state,
                                        cpp11::sexp r_index,
                                        const size_t n_threads,
-                                       cpp11::sexp r_seed) {
+                                       cpp11::sexp r_seed,
+                                       bool gpu) {
   typedef typename T::real_t real_t;
   std::vector<size_t> steps = validate_size(r_steps, "steps");
   std::vector<real_t> state = matrix_to_vector<real_t>(r_state);
@@ -79,7 +80,7 @@ cpp11::writable::doubles dust_simulate(cpp11::sexp r_steps,
   cpp11::writable::doubles ret(index.size() * data.size() * steps.size());
 
   std::vector<real_t> dat =
-    dust_simulate<T>(steps, data, state, index, n_threads, seed);
+    dust_simulate<T>(steps, data, state, index, n_threads, seed, gpu);
   std::copy(dat.begin(), dat.end(), REAL(ret));
 
   ret.attr("dim") = cpp11::writable::integers({(int)index.size(),

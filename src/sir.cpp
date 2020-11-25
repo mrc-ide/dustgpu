@@ -417,7 +417,7 @@ real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t fr
 // We're doing this as a free function as that's how we decided that
 // it might be easiest to get things working with
 template <>
-void update2(size_t step, const interleaved<sir::real_t> state,
+void update2<sir>(size_t step, const interleaved<sir::real_t> state,
              interleaved<int> internal_int,
              interleaved<sir::real_t> internal_real,
              dust::rng_state_t<sir::real_t> rng_state,

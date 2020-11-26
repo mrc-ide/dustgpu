@@ -628,7 +628,7 @@ private:
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
       _yi.getArray(y); // D -> H
       for (size_t i = 0; i < np; ++i) {
-        destride_copy(y_tmp, y, i, np);
+        destride_copy(y_tmp.data(), y, i, np);
         _particles[i].set_state(y_tmp.begin());
       }
       _stale_host = false;

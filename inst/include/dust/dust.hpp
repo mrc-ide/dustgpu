@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
-#include <cstdlib> //malloc
+#include <cstdlib> // malloc
 #include <cstring> // memcpy - remove this when CUDA done
 #ifdef _OPENMP
 #include <omp.h>
@@ -102,13 +102,13 @@ public:
   }
   void getArray(std::vector<T>& dst) const {
     // DEBUG
-    printf("memcpy (get)\n");
+    printf("memcpy (D->H)\n");
     memcpy(dst.data(), data_, size_ * sizeof(T));
   }
   void setArray(std::vector<T>& src) {
     size_ = src.size();
     // DEBUG
-    printf("memcpy (set)\n");
+    printf("memcpy (H->D)\n");
     memcpy(data_, src.data(), size_ * sizeof(T));
   }
   T* data() {
@@ -166,10 +166,14 @@ private:
   size_t stride_;
 };
 
+// NB: these functions expect pointers for dest and src,
+// so if applying to a vector use .data().
+// If the vector is passed in this will still compile due to the template,
+// but as not passed by ref will update a copy not the vector itself
 template <typename T, typename U, typename Enable = void>
 size_t destride_copy(T dest, U src, size_t at, size_t stride) {
-  for (size_t i = at; i < src.size(); ++at, i += stride) {
-    dest[at] = src[i];
+  for (size_t i = 0; at < src.size(); ++i, at += stride) {
+    dest[i] = src[at];
   }
   return at;
 }

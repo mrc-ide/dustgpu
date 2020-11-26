@@ -608,7 +608,6 @@ private:
       const size_t np = n_particles(), ny = n_state_full();
       std::vector<real_t> y_tmp(ny); // Individual particle state
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
-      size_t j = 0;
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif

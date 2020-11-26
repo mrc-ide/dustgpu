@@ -12,8 +12,8 @@ dust_sir_run <- function(ptr, step_end) {
   .Call("_dustgpu_dust_sir_run", ptr, step_end, PACKAGE = "dustgpu")
 }
 
-dust_sir_run2 <- function(ptr, step_end) {
-  .Call("_dustgpu_dust_sir_run2", ptr, step_end, PACKAGE = "dustgpu")
+dust_sir_run_device <- function(ptr, step_end) {
+  .Call("_dustgpu_dust_sir_run_device", ptr, step_end, PACKAGE = "dustgpu")
 }
 
 dust_sir_set_index <- function(ptr, r_index) {
@@ -48,8 +48,8 @@ dust_sir_set_rng_state <- function(ptr, rng_state) {
   .Call("_dustgpu_dust_sir_set_rng_state", ptr, rng_state, PACKAGE = "dustgpu")
 }
 
-dust_sir_simulate <- function(r_steps, r_data, r_state, r_index, n_threads, r_seed, gpu) {
-  .Call("_dustgpu_dust_sir_simulate", r_steps, r_data, r_state, r_index, n_threads, r_seed, gpu, PACKAGE = "dustgpu")
+dust_sir_simulate <- function(r_steps, r_data, r_state, r_index, n_threads, r_seed) {
+  .Call("_dustgpu_dust_sir_simulate", r_steps, r_data, r_state, r_index, n_threads, r_seed, PACKAGE = "dustgpu")
 }
 
 dust_sir_has_openmp <- function() {

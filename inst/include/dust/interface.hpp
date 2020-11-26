@@ -58,8 +58,7 @@ cpp11::writable::doubles dust_simulate(cpp11::sexp r_steps,
                                        cpp11::doubles_matrix r_state,
                                        cpp11::sexp r_index,
                                        const size_t n_threads,
-                                       cpp11::sexp r_seed,
-                                       bool gpu) {
+                                       cpp11::sexp r_seed) {
   typedef typename T::real_t real_t;
   std::vector<size_t> steps = validate_size(r_steps, "steps");
   std::vector<real_t> state = matrix_to_vector<real_t>(r_state);
@@ -80,7 +79,7 @@ cpp11::writable::doubles dust_simulate(cpp11::sexp r_steps,
   cpp11::writable::doubles ret(index.size() * data.size() * steps.size());
 
   std::vector<real_t> dat =
-    dust_simulate<T>(steps, data, state, index, n_threads, seed, gpu);
+    dust_simulate<T>(steps, data, state, index, n_threads, seed);
   std::copy(dat.begin(), dat.end(), REAL(ret));
 
   ret.attr("dim") = cpp11::writable::integers({(int)index.size(),
@@ -173,10 +172,10 @@ cpp11::writable::doubles_matrix dust_run(SEXP ptr, int step_end) {
 }
 
 template <typename T>
-cpp11::writable::doubles_matrix dust_run2(SEXP ptr, int step_end) {
+cpp11::writable::doubles_matrix dust_run_device(SEXP ptr, int step_end) {
   validate_size(step_end, "step_end");
   Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
-  obj->run2(step_end);
+  obj->run_device(step_end);
 
   const size_t n_state = obj->n_state();
   const size_t n_particles = obj->n_particles();

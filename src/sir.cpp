@@ -417,7 +417,7 @@ real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t fr
 // We're doing this as a free function as that's how we decided that
 // it might be easiest to get things working with
 template <>
-void update2<sir>(size_t step, const interleaved<sir::real_t> state,
+void update_device<sir>(size_t step, const interleaved<sir::real_t> state,
              interleaved<int> internal_int,
              interleaved<sir::real_t> internal_real,
              dust::rng_state_t<sir::real_t> rng_state,
@@ -596,8 +596,8 @@ SEXP dust_sir_run(SEXP ptr, size_t step_end) {
 }
 
 [[cpp11::register]]
-SEXP dust_sir_run2(SEXP ptr, size_t step_end) {
-  return dust_run2<sir>(ptr, step_end);
+SEXP dust_sir_run_device(SEXP ptr, size_t step_end) {
+  return dust_run_device<sir>(ptr, step_end);
 }
 
 [[cpp11::register]]
@@ -649,10 +649,9 @@ SEXP dust_sir_simulate(cpp11::sexp r_steps,
                             cpp11::doubles_matrix r_state,
                             cpp11::sexp r_index,
                             const size_t n_threads,
-                            cpp11::sexp r_seed,
-                            bool gpu) {
+                            cpp11::sexp r_seed) {
   return dust_simulate<sir>(r_steps, r_data, r_state, r_index,
-                            n_threads, r_seed, gpu);
+                            n_threads, r_seed);
 }
 
 [[cpp11::register]]

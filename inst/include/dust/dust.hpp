@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <cstdlib> //malloc
 #include <cstring> // memcpy - remove this when CUDA done
 #ifdef _OPENMP
 #include <omp.h>
@@ -47,7 +48,7 @@ public:
     }
     // DEBUG
     printf("memcpy (constructor)\n");
-    memcpy(data_, data.data(), size_);
+    memcpy(data_, data.data(), size_ * sizeof(T));
   }
   // TODO: should we just '= delete' the rule of five methods below?
   // Copy
@@ -56,7 +57,7 @@ public:
       stride_(other.stride_) {
       // DEBUG
       printf("memcpy (copy)\n");
-      memcpy(data_, other.data_, size_);
+      memcpy(data_, other.data_, size_ * sizeof(T));
   }
   // Copy assign
   DeviceArray& operator=(const DeviceArray& other) {
@@ -66,7 +67,7 @@ public:
       stride_ = other.stride_;
       // DEBUG
       printf("memcpy (copy assign)\n");
-      memcpy(data_, other.data_, size_);
+      memcpy(data_, other.data_, size_ * sizeof(T));
     }
     return *this;
   }
@@ -102,14 +103,13 @@ public:
   void getArray(std::vector<T>& dst) const {
     // DEBUG
     printf("memcpy (get)\n");
-    memcpy(dst.data(), data_, size_);
+    memcpy(dst.data(), data_, size_ * sizeof(T));
   }
   void setArray(std::vector<T>& src) {
     size_ = src.size();
     // DEBUG
     printf("memcpy (set)\n");
-    // TODO: segfault here!
-    memcpy(data_, src.data(), size_);
+    memcpy(data_, src.data(), size_ * sizeof(T));
   }
   T* data() {
     return data_;
@@ -196,7 +196,7 @@ size_t stride_copy(T dest, double src, size_t at, size_t stride) {
 
 // Alternative
 template <typename T>
-void update2(size_t step,
+void update_device(size_t step,
              const interleaved<typename T::real_t> state,
              interleaved<int> internal_int,
              interleaved<typename T::real_t> internal_real,
@@ -221,7 +221,7 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       // perhaps this should be a static method of the model? that
       // might be easier to deal with
-      update2<T>(curr_step,
+      update_device<T>(curr_step,
               p_state,
               p_internal_int,
               p_internal_real,
@@ -380,7 +380,7 @@ public:
   }
 
   // TODO: what to do with this one? Currently calls run,
-  // but should also support run2
+  // but should also support run_device
   void set_step(const std::vector<size_t>& step) {
     const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
@@ -403,7 +403,7 @@ public:
     }
   }
 
-  void run2(const size_t step_end) {
+  void run_device(const size_t step_end) {
     // Using same name here as in the prototype for simplicity.
     //
     // In order to make the implementation here as easy to think about
@@ -588,12 +588,12 @@ private:
       _particles[i].internal_int(int_data + i, stride);
       _particles[i].internal_real(real_data + i, stride);
     }
-    DeviceArray<int> _internal_int(int_vec, stride);
-    DeviceArray<real_t> _internal_real(real_vec, stride);
+    _internal_int = DeviceArray<int>(int_vec, stride);
+    _internal_real = DeviceArray<real_t>(real_vec, stride);
 
     // Set state (on device)
-    DeviceArray<real_t> _yi(n * n_particles, n_particles);
-    DeviceArray<real_t> _yi_next(n * n_particles, n_particles);
+    _yi = DeviceArray<real_t>(n * n_particles, n_particles);
+    _yi_next = DeviceArray<real_t>(n * n_particles, n_particles);
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -610,7 +610,7 @@ private:
 #endif
       for (size_t i = 0; i < np; ++i) {
         _particles[i].state_full(y_tmp.begin());
-        j = stride_copy(y, y_tmp, j, np);
+        stride_copy(y.data(), y_tmp, i, np);
       }
       _yi.setArray(y); // H -> D
       _stale_device = false;
@@ -636,9 +636,7 @@ private:
   }
 };
 
-// TODO: I don't know what this method is for, perhaps to support SMC^2?
-// Needs some thought as uses Particle directly, rather than a Dust instance
-// and all GPU code is in Dust, not Particle
+// NB: not needed on GPU for now
 template <typename T>
 std::vector<typename T::real_t>
 dust_simulate(const std::vector<size_t> steps,
@@ -646,8 +644,7 @@ dust_simulate(const std::vector<size_t> steps,
               const std::vector<typename T::real_t> state,
               const std::vector<size_t> index,
               const size_t n_threads,
-              const std::vector<uint64_t>& seed,
-              const bool gpu) {
+              const std::vector<uint64_t>& seed) {
   typedef typename T::real_t real_t;
   const size_t n_state_return = index.size();
   const size_t n_particles = data.size();
@@ -669,19 +666,15 @@ dust_simulate(const std::vector<size_t> steps,
   std::vector<real_t> ret(n_particles * n_state_return * steps.size());
   size_t n_steps = steps.size();
 
-  if (gpu) {
-    throw std::runtime_error("dust_simulate() unsupported on device");
-  } else {
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(static) num_threads(n_threads)
+  #pragma omp parallel for schedule(static) num_threads(n_threads)
 #endif
-    for (size_t i = 0; i < particles.size(); ++i) {
-      particles[i].set_state(state.begin() + n_state_full * i);
-      for (size_t t = 0; t < n_steps; ++t) {
-        particles[i].run(steps[t], rng.state(i));
-        size_t offset = t * n_state_return * n_particles + i * n_state_return;
-        particles[i].state(index, ret.begin() + offset);
-      }
+  for (size_t i = 0; i < particles.size(); ++i) {
+    particles[i].set_state(state.begin() + n_state_full * i);
+    for (size_t t = 0; t < n_steps; ++t) {
+      particles[i].run(steps[t], rng.state(i));
+      size_t offset = t * n_state_return * n_particles + i * n_state_return;
+      particles[i].state(index, ret.begin() + offset);
     }
   }
 

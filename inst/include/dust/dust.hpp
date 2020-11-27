@@ -67,14 +67,15 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     dust::interleaved<real_t> p_state_next(state_next, i);
     dust::interleaved<int> p_internal_int(internal_int, i);
     dust::interleaved<real_t> p_internal_real(internal_real, i);
-    // TODO this should become a loadRNG
-    interleaved<real_t> p_rng = rng_state[i];
+    dust::interleaved<uint64_t> p_rng(rng_state, i);
+
+    dust::rng_state_t<real_t> rng_block = loadRNG(p_rng);
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
                        p_internal_int,
                        p_internal_real,
-                       p_rng,
+                       rng_block,
                        p_state_next);
 
       // CUDA: This move may need a __device__ class explictly defined?
@@ -82,11 +83,8 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
       p_state = p_state_next;
       p_state_next = tmp;
     }
+    putRNG(rng_block, p_rng);
   }
-
-  // TODO: add a putRNG
-
-
 }
 
 template <typename T>

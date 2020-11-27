@@ -82,21 +82,19 @@ private:
 
 // Read state from global memory
 template <typename T>
-rng_state_t<T> loadRNG(dust::DeviceArray<uint64_t>& full_rng_state, int p_idx) {
+rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
   rng_state_t<T> rng_state;
   for (int i = 0; i < rng_state_t<T>::size(); i++) {
-    int j = p_idx * d_rng_state.particle_stride + i * d_rng_state.state_stride;
-    rng_state.s[i] = d_rng_state.state_ptr[j];
+    rng_state.s[i] = full_rng_state[j];
   }
   return rng_state;
 }
 
 // Write state into global memory
 template <typename T>
-void putRNG(rng_state_t<T>& rng_state, RNGptr& d_rng_state, int p_idx) {
-  for (int i = 0; i < XOSHIRO_WIDTH; i++) {
-    int j = p_idx * d_rng_state.particle_stride + i * d_rng_state.state_stride;
-    d_rng_state.state_ptr[j] = rng_state.s[i];
+void putRNG(rng_state_t<T>& rng_state, dust::interleaved<uint64_t>& full_rng_state) {
+  for (int i = 0; i < rng_state_t<T>::size(); i++) {
+    full_rng_state[j] = rng_state.s[i];
   }
 }
 

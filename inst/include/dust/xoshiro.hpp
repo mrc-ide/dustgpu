@@ -24,24 +24,15 @@ namespace dust {
 // All the xoshiro code does is index into the array, so we provide an
 // operator for that.
 template <typename T>
-class rng_state_t {
-public:
+struct rng_state_t {
   typedef T real_t;
   static size_t size() {
     return 4;
   }
-  rng_state_t(uint64_t *state, size_t stride) :
-    state_(state), stride_(stride) {
-  }
+  uint64_t* s;
   uint64_t& operator[](size_t i) {
-    return state_[i * stride_];
+    return s[i];
   }
-  rng_state_t<real_t> operator+(size_t i) {
-    return rng_state_t<real_t>(state_ + i, stride_);
-  }
-private:
-  uint64_t * state_;
-  size_t stride_;
 };
 
 static inline uint64_t rotl(const uint64_t x, int k) {

@@ -2,169 +2,14 @@
 #define DUST_DUST_HPP
 
 #include <dust/rng.hpp>
+#include <dust/containers.cuh>
 
 #include <algorithm>
 #include <sstream>
 #include <utility>
-#include <cstdlib> // malloc
-#include <cstring> // memcpy - remove this when CUDA done
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
-// TODO: eventually we could consider making data a fixed length
-// array and templating the size. Not really sure how much better
-// this would be
-
-// CUDA: change to cudaMalloc, cudaMemcpy
-// CUDA: Add memcpy methods to pull back to host
-// CUDA: Use cudaGetSymbolAddress() when doing the move on __host__
-template <typename T>
-class DeviceArray {
-public:
-  // Default constructor
-  DeviceArray() : data_(nullptr), size_(0), stride_(1) {}
-  // Constructor to allocate empty memory
-  DeviceArray(size_t size, size_t stride) : size_(size), stride_(stride) {
-    // DEBUG
-    printf("malloc of size %lu\n", size_ * sizeof(T));
-    data_ = (T*) malloc(size_ * sizeof(T));
-    if (!data_) {
-      throw std::runtime_error("malloc failed");
-    }
-    // DEBUG
-    printf("memset (constructor)\n");
-    memset(data_, 0, size_);
-  }
-  // Constructor from vector
-  DeviceArray(std::vector<T>& data, size_t stride)
-    : size_(data.size()),
-      stride_(stride) {
-    // DEBUG
-    printf("malloc of size %lu\n", size_ * sizeof(T));
-    data_ = (T*) malloc(size_ * sizeof(T));
-    if (!data_) {
-      throw std::runtime_error("malloc failed");
-    }
-    // DEBUG
-    printf("memcpy (constructor)\n");
-    memcpy(data_, data.data(), size_ * sizeof(T));
-  }
-  // TODO: should we just '= delete' the rule of five methods below?
-  // Copy
-  DeviceArray(const DeviceArray& other)
-    : size_(other.size_),
-      stride_(other.stride_) {
-      // DEBUG
-      printf("memcpy (copy)\n");
-      memcpy(data_, other.data_, size_ * sizeof(T));
-  }
-  // Copy assign
-  DeviceArray& operator=(const DeviceArray& other) {
-    if (this != &other) {
-      free(data_);
-      size_ = other.size_;
-      stride_ = other.stride_;
-      // DEBUG
-      printf("memcpy (copy assign)\n");
-      memcpy(data_, other.data_, size_ * sizeof(T));
-    }
-    return *this;
-  }
-  // Move
-  DeviceArray(DeviceArray&& other) : data_(nullptr), size_(0), stride_(1) {
-    data_ = other.data_;
-    size_ = other.size_;
-    stride_ = other.stride_;
-    other.data_ = nullptr;
-    other.size_ = 0;
-    other.stride_ = 1;
-  }
-  // Move assign
-  DeviceArray& operator=(DeviceArray&& other) {
-    if (this != &other) {
-      // DEBUG
-      printf("free (move assign)\n");
-      free(data_);
-      data_ = other.data_;
-      size_ = other.size_;
-      stride_ = other.stride_;
-      other.data_ = nullptr;
-      other.size_ = 0;
-      other.stride_ = 1;
-    }
-    return *this;
-  }
-  ~DeviceArray() {
-    // DEBUG
-    printf("free (destructor)\n");
-    free(data_);
-  }
-  void getArray(std::vector<T>& dst) const {
-    // DEBUG
-    printf("memcpy (D->H)\n");
-    memcpy(dst.data(), data_, size_ * sizeof(T));
-  }
-  void setArray(std::vector<T>& src) {
-    size_ = src.size();
-    // DEBUG
-    printf("memcpy (H->D)\n");
-    memcpy(data_, src.data(), size_ * sizeof(T));
-  }
-  T* data() {
-    return data_;
-  }
-  size_t size() const {
-    return size_;
-  }
-  size_t stride() const {
-    return stride_;
-  }
-private:
-  T* data_;
-
-  // CUDA: these need to be malloc'd, or passed as args to the kernel
-  // OR, as they aren't actually used by this class any more, we could
-  // just get rid of them and keep in the interleaved class instead
-  size_t size_;
-  size_t stride_;
-};
-
-// CUDA: mark all class methods below as __device__ (maybe also __host__)
-// The class from before, which is a light wrapper around a pointer
-// This can be used within a kernel with copying memory
-// Issue is that there's no way to tell whether the data being referred to
-// has been freed or not, so a segfault could well be on the cards.
-// tbh the previous implementation also had this issue, accessing a pointer
-// through [] it does not control
-template <typename T>
-class interleaved {
-public:
-  interleaved(DeviceArray<T>& data, size_t offset)
-    : data_(data.data() + offset),
-      stride_(data.stride()) {}
-  interleaved(T* data, size_t stride)
-    : data_(data),
-      stride_(stride) {}
-  // I feel like there might be some way to define these with inheritance
-  // but not sure as this would be the base class, and it would take the child
-  // class in the constructor
-  T& operator[](size_t i) {
-    return data_[i * stride_];
-  }
-  const T& operator[](size_t i) const {
-    return data_[i * stride_];
-  }
-  interleaved<T> operator+(size_t by) {
-    return interleaved(data_ + by * stride_, stride_);
-  }
-  const interleaved<T> operator+(size_t by) const {
-    return interleaved(data_ + by * stride_, stride_);
-  }
-private:
-  T* data_;
-  size_t stride_;
-};
 
 // NB: these functions expect pointers for dest and src,
 // so if applying to a vector use .data().
@@ -201,35 +46,29 @@ size_t stride_copy(T dest, double src, size_t at, size_t stride) {
 // Alternative (protoype - definition in model file)
 template <typename T>
 void update_device(size_t step,
-             const interleaved<typename T::real_t> state,
-             interleaved<int> internal_int,
-             interleaved<typename T::real_t> internal_real,
+             const dust::interleaved<typename T::real_t> state,
+             dust::interleaved<int> internal_int,
+             dust::interleaved<typename T::real_t> internal_real,
              dust::rng_state_t<typename T::real_t> rng_state,
-             interleaved<typename T::real_t> state_next);
+             dust::interleaved<typename T::real_t> state_next);
 
 // This will become the __global__ kernel
 template <typename real_t, typename T>
 void run_particles(size_t step_from, size_t step_to, size_t n_particles,
-                   DeviceArray<real_t>& state,
-                   DeviceArray<real_t>& state_next,
-                   DeviceArray<int>& internal_int,
-                   DeviceArray<real_t>& internal_real,
-                   dust::pRNG<real_t>& rng_state) {
-  // DEBUG
-  printf("RNG in\n");
-  std::vector<uint64_t> rng_in = rng_state.raw_state();
-  for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
-    std::cout << *rng_bin << std::endl;
-  }
-
+                   dust::DeviceArray<real_t>& state,
+                   dust::DeviceArray<real_t>& state_next,
+                   dust::DeviceArray<int>& internal_int,
+                   dust::DeviceArray<real_t>& internal_real,
+                   dust::DeviceArray<uint64_t>& rng_state) {
   // int p_idx = blockIdx.x * blockDim.x + threadIdx.x;
   // if (p_idx < n_particles) {
   for (size_t i = 0; i < n_particles; ++i) {
-    interleaved<real_t> p_state(state, i);
-    interleaved<real_t> p_state_next(state_next, i);
-    interleaved<int> p_internal_int(internal_int, i);
-    interleaved<real_t> p_internal_real(internal_real, i);
-    dust::rng_state_t<real_t> p_rng = rng_state[i];
+    dust::interleaved<real_t> p_state(state, i);
+    dust::interleaved<real_t> p_state_next(state_next, i);
+    dust::interleaved<int> p_internal_int(internal_int, i);
+    dust::interleaved<real_t> p_internal_real(internal_real, i);
+    // TODO this should become a loadRNG
+    interleaved<real_t> p_rng = rng_state[i];
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
@@ -239,24 +78,15 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                        p_state_next);
 
       // CUDA: This move may need a __device__ class explictly defined?
-      interleaved<real_t> tmp = p_state;
+      dust::interleaved<real_t> tmp = p_state;
       p_state = p_state_next;
       p_state_next = tmp;
-
-      // DEBUG
-      for (int j = 0; j < state.size(); j++) {
-        printf("%.1f ", p_state[j]);
-      }
-      printf("\n");
     }
   }
 
-  // DEBUG
-  printf("RNG out\n");
-  std::vector<uint64_t> rng_out = rng_state.raw_state();
-  for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
-    std::cout << *rng_bin << std::endl;
-  }
+  // TODO: add a putRNG
+
+
 }
 
 template <typename T>
@@ -557,16 +387,20 @@ public:
   }
 
   std::vector<uint64_t> rng_state() {
+    refresh_host();
     return _rng.export_state();
   }
 
   void set_rng_state(const std::vector<uint64_t>& rng_state) {
+    _stale_device = true;
     _rng.import_state(rng_state);
   }
 
   // NOTE: it only makes sense to expose long_jump, and not jump,
   // because each rng stream is one jump away from the next.
   void rng_long_jump() {
+    refresh_host();
+    _stale_device = true;
     _rng.long_jump();
   }
 
@@ -601,8 +435,9 @@ private:
 
   // New things for device support
   bool _stale_host, _stale_device;
-  DeviceArray<real_t> _yi, _yi_next, _internal_real;
-  DeviceArray<int> _internal_int;
+  dust::DeviceArray<real_t> _yi, _yi_next, _internal_real;
+  dust::DeviceArray<int> _internal_int;
+  dust::DeviceArray<uint64_t> _rngi;
 
   void initialise(const init_t data, const size_t step,
                   const size_t n_particles) {
@@ -637,6 +472,8 @@ private:
     // Set state (on device)
     _yi = DeviceArray<real_t>(n * n_particles, n_particles);
     _yi_next = DeviceArray<real_t>(n * n_particles, n_particles);
+    size_t rng_len = dust::rng_state_t<real_t>::size();
+    _rngi = DeviceArray<uint64_t>(rng_len * n_particles, n_particles);
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -645,16 +482,27 @@ private:
   void refresh_device() {
     if (_stale_device) {
       const size_t np = n_particles(), ny = n_state_full();
+      const size_t rng_len = dust::rng_state_t<real_t>::size();
       std::vector<real_t> y_tmp(ny); // Individual particle state
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
+      std::vector<uint64_t> rng(np * rng_len); // Interleaved RNG state
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
       for (size_t i = 0; i < np; ++i) {
+        // Interleave state
         _particles[i].state_full(y_tmp.begin());
         stride_copy(y.data(), y_tmp, i, np);
+
+        // Interleave RNG state
+        dust::rng_state_t<real_t> p_rng = _rng[i];
+        size_t rng_offset = i;
+        for (size_t j = 0; j < rng_len; ++j) {
+          rng_offset = stride_copy(rng.data(), p_rng[j], rng_offset, np);
+        }
       }
       _yi.setArray(y); // H -> D
+      _rngi.setArray(rng);
       _stale_device = false;
     }
   }
@@ -666,13 +514,26 @@ private:
   void refresh_host() {
     if (_stale_host) {
       const size_t np = n_particles(), ny = n_state_full();
+      const size_t rng_len = dust::rng_state_t<real_t>::size();
       std::vector<real_t> y_tmp(ny); // Individual particle state
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
+      std::vector<uint64_t> rngi(np * rng_len); // Interleaved RNG state
+      std::vector<uint64_t> rng(np * rng_len); //  Deinterleaved RNG state
       _yi.getArray(y); // D -> H
+      _rngi.getArray(rngi);
+#ifdef _OPENMP
+      #pragma omp parallel for schedule(static) num_threads(_n_threads)
+#endif
       for (size_t i = 0; i < np; ++i) {
         destride_copy(y_tmp.data(), y, i, np);
         _particles[i].set_state(y_tmp.begin());
+
+        size_t rng_offset = i;
+        for (size_t j = 0; j < rng_len; ++j) {
+          rng[i * np + j] = rngi[i + j * np];
+        }
       }
+      _rng.import_state(rng);
       _stale_host = false;
     }
   }

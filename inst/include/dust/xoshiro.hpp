@@ -2,6 +2,7 @@
 #define DUST_XOSHIRO_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 #include <limits>
 

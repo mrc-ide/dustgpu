@@ -11,9 +11,9 @@ real_t odin_sum2(const real_t * x, int_t from_i, int_t to_i, int_t from_j, int_t
 
 // More sum templates
 template <typename T>
-T odin_sum1(const interleaved<T> x, size_t from, size_t to);
+T odin_sum1(const dust::interleaved<T> x, size_t from, size_t to);
 template <typename real_t, typename int_t>
-real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t from_j, int_t to_j, int_t dim_x_1);
+real_t odin_sum2(const dust::interleaved<real_t> x, int_t from_i, int_t to_i, int_t from_j, int_t to_j, int_t dim_x_1);
 
 class sir {
 public:
@@ -389,7 +389,7 @@ T odin_sum1(const T * x, size_t from, size_t to) {
 // More template specialisations, though looking at this we could just
 // template against the input type as we seem to always return a real?
 template <typename T>
-T odin_sum1(const interleaved<T> x, size_t from, size_t to) {
+T odin_sum1(const dust::interleaved<T> x, size_t from, size_t to) {
   T tot = 0.0;
   for (size_t i = from; i < to; ++i) {
     tot += x[i];
@@ -397,7 +397,7 @@ T odin_sum1(const interleaved<T> x, size_t from, size_t to) {
   return tot;
 }
 template <typename real_t, typename int_t>
-real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t from_j, int_t to_j, int_t dim_x_1) {
+real_t odin_sum2(const dust::interleaved<real_t> x, int_t from_i, int_t to_i, int_t from_j, int_t to_j, int_t dim_x_1) {
   real_t tot = 0.0;
   for (int_t j = from_j; j < to_j; ++j) {
     int_t jj = j * dim_x_1;
@@ -417,11 +417,11 @@ real_t odin_sum2(const interleaved<real_t> x, int_t from_i, int_t to_i, int_t fr
 // We're doing this as a free function as that's how we decided that
 // it might be easiest to get things working with
 template <>
-void update_device<sir>(size_t step, const interleaved<sir::real_t> state,
-             interleaved<int> internal_int,
-             interleaved<sir::real_t> internal_real,
+void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
+             dust::interleaved<int> internal_int,
+             dust::interleaved<sir::real_t> internal_real,
              dust::rng_state_t<sir::real_t> rng_state,
-             interleaved<sir::real_t> state_next) {
+             dust::interleaved<sir::real_t> state_next) {
   typedef sir::real_t real_t;
   typedef int int_t;
   // Unpack the integer vector
@@ -457,16 +457,16 @@ void update_device<sir>(size_t step, const interleaved<sir::real_t> state,
 
   // TODO - alternative would be to make offsets relative, then could
   // use operator+ after first assignment
-  interleaved<real_t> lambda = internal_real + offset_internal_lambda;
-  interleaved<real_t> m = internal_real + offset_internal_m;
-  interleaved<real_t> n_IR = internal_real + offset_internal_n_IR;
-  interleaved<real_t> n_SI = internal_real + offset_internal_n_SI;
-  interleaved<real_t> p_SI = internal_real + offset_internal_p_SI;
-  interleaved<real_t> s_ij = internal_real + offset_internal_s_ij;
+  dust::interleaved<real_t> lambda = internal_real + offset_internal_lambda;
+  dust::interleaved<real_t> m = internal_real + offset_internal_m;
+  dust::interleaved<real_t> n_IR = internal_real + offset_internal_n_IR;
+  dust::interleaved<real_t> n_SI = internal_real + offset_internal_n_SI;
+  dust::interleaved<real_t> p_SI = internal_real + offset_internal_p_SI;
+  dust::interleaved<real_t> s_ij = internal_real + offset_internal_s_ij;
 
-  interleaved<real_t> S = state + 1;
-  interleaved<real_t> I = state + offset_variable_I;
-  interleaved<real_t> R = state + offset_variable_R;
+  dust::interleaved<real_t> S = state + 1;
+  dust::interleaved<real_t> I = state + offset_variable_I;
+  dust::interleaved<real_t> R = state + offset_variable_R;
 
   real_t N = odin_sum1(S, 0, dim_S) + odin_sum1(I, 0, dim_I) + odin_sum1(R, 0, dim_R);
   state_next[0] = (step + 1) * dt;

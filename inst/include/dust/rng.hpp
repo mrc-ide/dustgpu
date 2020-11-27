@@ -7,10 +7,15 @@
 #include "distr/normal.hpp"
 #include "distr/poisson.hpp"
 #include "distr/uniform.hpp"
+#include "containers.cuh"
 
 namespace dust {
 
 // This is just a container class for state
+// TODO: this needs to support being either interleaved or deinterleaved
+// depending on whether GPU or CPU
+// The best way of doing this may be to leave deinterleaved on host,
+// then do the same as with state when copying to and from the device
 template <typename T>
 class pRNG {
 public:
@@ -18,18 +23,18 @@ public:
     n_(n), state_(n * rng_state_t<T>::size()) {
     auto len = rng_state_t<T>::size();
     auto n_seed = seed.size() / len;
-    auto state_it = state_.begin();
-    rng_state_t<T> s;
+    auto state_it = state.begin();
     for (size_t i = 0; i < n; ++i) {
       if (i < n_seed) {
         std::copy_n(seed.begin() + i * len, len, state_it);
         state_it += len;
       } else {
-        xoshiro_jump(s);
-        for (int j = 0; j < len; ++j) {
-          *state_it = s[j];
-          ++state_it;
+        rng_state_t<T> prev = state(i - 1);
+        for (size_t j = 0; j < len; ++j) {
+          state_it = prev[j];
+          state_it++;
         }
+        xoshiro_jump(state(i));
       }
     }
   }
@@ -74,6 +79,26 @@ private:
   const size_t n_;
   std::vector<uint64_t> state_;
 };
+
+// Read state from global memory
+template <typename T>
+rng_state_t<T> loadRNG(dust::DeviceArray<uint64_t>& full_rng_state, int p_idx) {
+  rng_state_t<T> rng_state;
+  for (int i = 0; i < rng_state_t<T>::size(); i++) {
+    int j = p_idx * d_rng_state.particle_stride + i * d_rng_state.state_stride;
+    rng_state.s[i] = d_rng_state.state_ptr[j];
+  }
+  return rng_state;
+}
+
+// Write state into global memory
+template <typename T>
+void putRNG(rng_state_t<T>& rng_state, RNGptr& d_rng_state, int p_idx) {
+  for (int i = 0; i < XOSHIRO_WIDTH; i++) {
+    int j = p_idx * d_rng_state.particle_stride + i * d_rng_state.state_stride;
+    d_rng_state.state_ptr[j] = rng_state.s[i];
+  }
+}
 
 }
 

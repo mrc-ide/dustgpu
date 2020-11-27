@@ -11,6 +11,10 @@
 namespace dust {
 
 // This is just a container class for state
+// TODO: this needs to support being either interleaved or deinterleaved
+// depending on whether GPU or CPU
+// The best way of doing this may be to leave deinterleaved on host,
+// then do the same as with state when copying to and from the device
 template <typename T>
 class pRNG {
 public:
@@ -23,11 +27,14 @@ public:
       if (i < n_seed) {
         for (size_t j = 0; j < len; ++j) {
           s[j] = seed[i * len + j];
+          // DEBUG
+          printf("j:%lu s[j]:%llu\n", j, s[j]);
         }
       } else {
         rng_state_t<T> prev = state(i - 1);
         for (size_t j = 0; j < len; ++j) {
           s[j] = prev[j];
+          printf("j:%lu s[j]:%llu\n", j, s[j]);
         }
         xoshiro_jump(s);
       }
@@ -59,11 +66,9 @@ public:
 
   // Possibly nicer way of doing the above
   rng_state_t<T> operator[](size_t i) {
-    return rng_state_t<T>(state_.data() + i * n_, n_);
+    return rng_state_t<T>(state_.data() + i, n_);
   }
 
-  // We might make this optionally dump out the raw state, at least
-  // for debugging?
   std::vector<uint64_t> export_state() {
     const auto len = rng_state_t<T>::size();
     std::vector<uint64_t> ret(n_ * len);
@@ -73,6 +78,11 @@ public:
       }
     }
     return ret;
+  }
+
+  // For debugging
+  std::vector<uint64_t> raw_state() {
+    return state_;
   }
 
   void import_state(const std::vector<uint64_t>& state) {

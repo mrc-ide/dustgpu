@@ -198,7 +198,7 @@ size_t stride_copy(T dest, double src, size_t at, size_t stride) {
   return at + stride;
 }
 
-// Alternative
+// Alternative (protoype - definition in model file)
 template <typename T>
 void update_device(size_t step,
              const interleaved<typename T::real_t> state,
@@ -214,7 +214,14 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                    DeviceArray<real_t>& state_next,
                    DeviceArray<int>& internal_int,
                    DeviceArray<real_t>& internal_real,
-                   dust::rng_state_t<real_t> rng_state) {
+                   dust::pRNG<real_t>& rng_state) {
+  // DEBUG
+  printf("RNG in\n");
+  std::vector<uint64_t> rng_in = rng_state.raw_state();
+  for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
+    std::cout << *rng_bin << std::endl;
+  }
+
   // int p_idx = blockIdx.x * blockDim.x + threadIdx.x;
   // if (p_idx < n_particles) {
   for (size_t i = 0; i < n_particles; ++i) {
@@ -222,21 +229,33 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     interleaved<real_t> p_state_next(state_next, i);
     interleaved<int> p_internal_int(internal_int, i);
     interleaved<real_t> p_internal_real(internal_real, i);
+    dust::rng_state_t<real_t> p_rng = rng_state[i];
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
-      // perhaps this should be a static method of the model? that
-      // might be easier to deal with
       update_device<T>(curr_step,
-              p_state,
-              p_internal_int,
-              p_internal_real,
-              rng_state,
-              p_state_next);
+                       p_state,
+                       p_internal_int,
+                       p_internal_real,
+                       p_rng,
+                       p_state_next);
 
       // CUDA: This move may need a __device__ class explictly defined?
       interleaved<real_t> tmp = p_state;
       p_state = p_state_next;
       p_state_next = tmp;
+
+      // DEBUG
+      for (int j = 0; j < state.size(); j++) {
+        printf("%.1f ", p_state[j]);
+      }
+      printf("\n");
     }
+  }
+
+  // DEBUG
+  printf("RNG out\n");
+  std::vector<uint64_t> rng_out = rng_state.raw_state();
+  for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
+    std::cout << *rng_bin << std::endl;
   }
 }
 
@@ -258,6 +277,11 @@ public:
       _model.update(_step, _y.data(), rng_state, _y_swap.data());
       _step++;
       std::swap(_y, _y_swap);
+      // DEBUG
+      for (int j = 0; j < size(); j++) {
+        printf("%.1f ", _y[j]);
+      }
+      printf("\n");
     }
   }
 
@@ -399,11 +423,26 @@ public:
   void run(const size_t step_end) {
     refresh_host();
     _stale_device = true;
+
+    // DEBUG
+    printf("RNG in\n");
+    std::vector<uint64_t> rng_in = _rng.raw_state();
+    for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
+      std::cout << *rng_bin << std::endl;
+    }
+
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
     for (size_t i = 0; i < _particles.size(); ++i) {
       _particles[i].run(step_end, _rng.state(i));
+    }
+
+    // DEBUG
+    printf("RNG out\n");
+    std::vector<uint64_t> rng_out = _rng.raw_state();
+    for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
+      std::cout << *rng_bin << std::endl;
     }
   }
 
@@ -430,7 +469,7 @@ public:
 
     run_particles<real_t, T>(step(), step_end, _particles.size(),
                   _yi, _yi_next, _internal_int, _internal_real,
-                  _rng.state(0));
+                  _rng);
 
     // In the inner loop, the swap will keep the locally scoped interleaved variables
     // updated, but the interleaved variables passed in have not yet been updated.

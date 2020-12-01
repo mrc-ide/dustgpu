@@ -56,8 +56,7 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 }
 
 // This is the core generator (next() in the original C code)
-template <typename T>
-inline uint64_t xoshiro_next(T state) {
+inline uint64_t xoshiro_next(uint64_t * state) {
   const uint64_t result = rotl(state[1] * 5, 7) * 9;
 
   const uint64_t t = state[1] << 17;
@@ -72,6 +71,16 @@ inline uint64_t xoshiro_next(T state) {
   state[3] = rotl(state[3], 45);
 
   return result;
+}
+
+template <typename T>
+inline uint64_t xoshiro_next(rng_state_t<T> state) {
+  return xoshiro_next(state.s);
+}
+
+template <typename T>
+inline uint64_t xoshiro_next(device_rng_state_t<T>& state) {
+  return xoshiro_next(state.s);
 }
 
 inline uint64_t splitmix64(uint64_t seed) {
@@ -157,7 +166,7 @@ inline void xoshiro_long_jump(T state) {
 }
 
 template <typename T, typename U = typename T::real_t>
-U unif_rand(T state) {
+U unif_rand(T& state) {
   const uint64_t value = xoshiro_next(state);
   return U(value) / U(std::numeric_limits<uint64_t>::max());
 }
@@ -166,7 +175,7 @@ U unif_rand(T state) {
 #ifdef __NVCC__
 template <>
  __device__
-double unif_rand(device_rng_state_t<double> state) {
+double unif_rand(device_rng_state_t<double>& state) {
   const uint64_t value = xoshiro_next(state);
   // 18446744073709551616.0 == __ull2double_rn(UINT64_MAX)
   double rand = (__ddiv_rn(__ull2double_rn(value), 18446744073709551616.0));
@@ -175,7 +184,7 @@ double unif_rand(device_rng_state_t<double> state) {
 // TODO: constant here needs to be fixed
 template <>
  __device__
-float unif_rand(device_rng_state_t<float> state) {
+float unif_rand(device_rng_state_t<float>& state) {
   const uint64_t value = xoshiro_next(state);
   float rand = (__fdiv_rn(__ull2float_rn(value), 18446744073709551616.0f));
   return rand;

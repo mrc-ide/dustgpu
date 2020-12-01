@@ -55,7 +55,7 @@ void update_device(size_t step,
              const dust::interleaved<typename T::real_t> state,
              dust::interleaved<int> internal_int,
              dust::interleaved<typename T::real_t> internal_real,
-             dust::device_rng_state_t<typename T::real_t> rng_state,
+             dust::device_rng_state_t<typename T::real_t>& rng_state,
              dust::interleaved<typename T::real_t> state_next);
 
 // This will become the __global__ kernel
@@ -76,6 +76,13 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     dust::interleaved<uint64_t> p_rng(rng_state, i);
 
     dust::device_rng_state_t<real_t> rng_block = dust::loadRNG<real_t>(p_rng);
+
+    // DEBUG
+    printf("RNG in\n");
+    for (int i = 0; i < 4; ++i) {
+      std::cout << rng_block[i] << std::endl;
+    }
+
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
@@ -90,6 +97,12 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
       p_state_next = tmp;
     }
     dust::putRNG(rng_block, p_rng);
+
+    printf("RNG out\n");
+    for (int i = 0; i < 4; ++i) {
+      std::cout << p_rng[i] << std::endl;
+    }
+
   }
 }
 
@@ -253,11 +266,25 @@ public:
     refresh_host();
     _stale_device = true;
 
+    // DEBUG
+    std::cout << "RNG in" << std::endl;
+    std::vector<uint64_t> rng_in = _rng.export_state();
+    for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
+      std::cout << *rng_bin << std::endl;
+    }
+
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
     for (size_t i = 0; i < _particles.size(); ++i) {
       _particles[i].run(step_end, _rng.state(i));
+    }
+
+    // DEBUG
+    std::cout << "RNG out" << std::endl;
+    std::vector<uint64_t> rng_out = _rng.export_state();
+    for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
+      std::cout << *rng_bin << std::endl;
     }
   }
 

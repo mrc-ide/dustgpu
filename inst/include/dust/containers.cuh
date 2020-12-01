@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdlib> // malloc
-#include <cstring> // memcpy - remove this when CUDA done
+#include <cstring> // memcpy
 
 namespace dust {
 
@@ -24,13 +24,13 @@ public:
   DeviceArray(size_t size, size_t stride) : size_(size), stride_(stride) {
     // DEBUG
     printf("malloc of size %lu\n", size_ * sizeof(T));
-    data_ = (T*) malloc(size_ * sizeof(T));
+    data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
       throw std::runtime_error("malloc failed");
     }
     // DEBUG
     printf("memset (constructor)\n");
-    memset(data_, 0, size_);
+    std::memset(data_, 0, size_);
   }
   // Constructor from vector
   DeviceArray(std::vector<T>& data, size_t stride)
@@ -38,13 +38,13 @@ public:
       stride_(stride) {
     // DEBUG
     printf("malloc of size %lu\n", size_ * sizeof(T));
-    data_ = (T*) malloc(size_ * sizeof(T));
+    data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
       throw std::runtime_error("malloc failed");
     }
     // DEBUG
     printf("memcpy (constructor)\n");
-    memcpy(data_, data.data(), size_ * sizeof(T));
+    std::memcpy(data_, data.data(), size_ * sizeof(T));
   }
   // TODO: should we just '= delete' the rule of five methods below?
   // Copy
@@ -53,17 +53,17 @@ public:
       stride_(other.stride_) {
       // DEBUG
       printf("memcpy (copy)\n");
-      memcpy(data_, other.data_, size_ * sizeof(T));
+      std::memcpy(data_, other.data_, size_ * sizeof(T));
   }
   // Copy assign
   DeviceArray& operator=(const DeviceArray& other) {
     if (this != &other) {
-      free(data_);
+      std::free(data_);
       size_ = other.size_;
       stride_ = other.stride_;
       // DEBUG
       printf("memcpy (copy assign)\n");
-      memcpy(data_, other.data_, size_ * sizeof(T));
+      std::memcpy(data_, other.data_, size_ * sizeof(T));
     }
     return *this;
   }
@@ -81,7 +81,7 @@ public:
     if (this != &other) {
       // DEBUG
       printf("free (move assign)\n");
-      free(data_);
+      std::free(data_);
       data_ = other.data_;
       size_ = other.size_;
       stride_ = other.stride_;
@@ -94,18 +94,18 @@ public:
   ~DeviceArray() {
     // DEBUG
     printf("free (destructor)\n");
-    free(data_);
+    std::free(data_);
   }
   void getArray(std::vector<T>& dst) const {
     // DEBUG
     printf("memcpy (D->H)\n");
-    memcpy(dst.data(), data_, size_ * sizeof(T));
+    std::memcpy(dst.data(), data_, size_ * sizeof(T));
   }
   void setArray(std::vector<T>& src) {
     size_ = src.size();
     // DEBUG
     printf("memcpy (H->D)\n");
-    memcpy(data_, src.data(), size_ * sizeof(T));
+    std::memcpy(data_, src.data(), size_ * sizeof(T));
   }
   T* data() {
     return data_;

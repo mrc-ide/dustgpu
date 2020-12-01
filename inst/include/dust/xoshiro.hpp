@@ -103,11 +103,15 @@ inline std::vector<uint64_t> xoshiro_initial_seed(uint64_t seed) {
   return state;
 }
 
+/* NB: jump functions not defined for device_rng_state_t as they do not take
+   a reference. See template specialisations for xoshiro_next to see how to
+   add support, if needed */
+
 /* This is the jump function for the generator. It is equivalent
    to 2^128 calls to next(); it can be used to generate 2^128
    non-overlapping subsequences for parallel computations. */
 template <typename T>
-inline void xoshiro_jump(T state) {
+inline void xoshiro_jump(rng_state_t<T> state) {
   static const uint64_t JUMP[] = { 0x180ec6d33cfd0aba, 0xd5a61266f0c9392c,
                                    0xa9582618e03fc9aa, 0x39abdc4529b1661c };
 
@@ -138,7 +142,7 @@ inline void xoshiro_jump(T state) {
    from each of which jump() will generate 2^64 non-overlapping
    subsequences for parallel distributed computations. */
 template <typename T>
-inline void xoshiro_long_jump(T state) {
+inline void xoshiro_long_jump(rng_state_t<T> state) {
   static const uint64_t LONG_JUMP[] =
     { 0x76e15d3efefdcbbf, 0xc5004e441c522fb3,
       0x77710069854ee241, 0x39109bb02acbe635 };

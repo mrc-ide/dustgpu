@@ -43,6 +43,12 @@ size_t stride_copy(T dest, double src, size_t at, size_t stride) {
   return at + stride;
 }
 
+template <typename T>
+size_t stride_copy(T dest, uint64_t src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
 // Alternative (protoype - definition in model file)
 template <typename T>
 void update_device(size_t step,
@@ -69,7 +75,7 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     dust::interleaved<real_t> p_internal_real(internal_real, i);
     dust::interleaved<uint64_t> p_rng(rng_state, i);
 
-    dust::device_rng_state_t<real_t> rng_block = loadRNG(p_rng);
+    dust::device_rng_state_t<real_t> rng_block = dust::loadRNG<real_t>(p_rng);
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
@@ -83,7 +89,7 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
       p_state = p_state_next;
       p_state_next = tmp;
     }
-    putRNG(rng_block, p_rng);
+    dust::putRNG(rng_block, p_rng);
   }
 }
 
@@ -445,14 +451,14 @@ private:
       _particles[i].internal_int(int_data + i, stride);
       _particles[i].internal_real(real_data + i, stride);
     }
-    _internal_int = DeviceArray<int>(int_vec, stride);
-    _internal_real = DeviceArray<real_t>(real_vec, stride);
+    _internal_int = dust::DeviceArray<int>(int_vec, stride);
+    _internal_real = dust::DeviceArray<real_t>(real_vec, stride);
 
     // Set state (on device)
-    _yi = DeviceArray<real_t>(n * n_particles, n_particles);
-    _yi_next = DeviceArray<real_t>(n * n_particles, n_particles);
+    _yi = dust::DeviceArray<real_t>(n * n_particles, n_particles);
+    _yi_next = dust::DeviceArray<real_t>(n * n_particles, n_particles);
     size_t rng_len = dust::rng_state_t<real_t>::size();
-    _rngi = DeviceArray<uint64_t>(rng_len * n_particles, n_particles);
+    _rngi = dust::DeviceArray<uint64_t>(rng_len * n_particles, n_particles);
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -491,6 +497,7 @@ private:
   // CUDA:  cub::deviceselect to get just some state (and ignore rng)
   //        (e.g. refresh_host_partial called by state
   //              refresh_host called by state_full)
+  // TODO: could have RNG refresh/state refresh as separate functions
   void refresh_host() {
     if (_stale_host) {
       const size_t np = n_particles(), ny = n_state_full();
@@ -509,7 +516,7 @@ private:
         destride_copy(y_tmp.data(), y, i, np);
         _particles[i].set_state(y_tmp.begin());
 
-        size_t rng_offset = i;
+        // Destride RNG
         for (size_t j = 0; j < rng_len; ++j) {
           rng[i * np + j] = rngi[i + j * np];
         }

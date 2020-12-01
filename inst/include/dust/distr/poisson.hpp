@@ -9,7 +9,7 @@ namespace distr {
 template <typename T>
 int rpois(T rng_state,
           typename T::real_t lambda) {
-  typedef real_t typename T::real_t;
+  using real_t = typename T::real_t;
   int x = 0;
   if (lambda < 10) {
     // Knuth's algorithm for generating Poisson random variates.

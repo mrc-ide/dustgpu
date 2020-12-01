@@ -42,8 +42,10 @@ struct rng_state_t {
 template <typename T>
 struct device_rng_state_t {
   using real_t = T;
-  static size_t size() = rng_state_t<real_t>::size();
-  uint64_t[4] s;
+  static size_t size() {
+    return 4;
+  }
+  uint64_t s[4];
   uint64_t& operator[](size_t i) {
     return s[i];
   }

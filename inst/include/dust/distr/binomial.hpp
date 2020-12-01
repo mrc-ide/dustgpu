@@ -31,8 +31,10 @@ T fast_pow(T x, int n) {
 // random number from U(0, 1) and find the 'n' up the distribution
 // (given p) that corresponds to this
 template <typename T>
-typename T::real_t binomial_inversion(T& rng_state, int n, T p) {
-  typedef real_t typename T::real_t;
+typename T::real_t binomial_inversion(T& rng_state,
+                                      int n,
+                                      typename T::real_t p) {
+  using real_t = typename T::real_t;
   real_t u = dust::unif_rand<T>(rng_state);
 
   // This is equivalent to qbinom(u, n, p)
@@ -136,7 +138,7 @@ int rbinom(T rng_state, int n,
     }
   */
 
-  T::real_t q = p;
+  typename T::real_t q = p;
   if (p > 0.5) {
     q = 1 - q;
   }

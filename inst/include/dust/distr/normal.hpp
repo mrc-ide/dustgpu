@@ -11,7 +11,7 @@ inline typename T::real_t box_muller(T rng_state) {
   // This function implements the Box-Muller transform:
   // http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#Basic_form
   // Do not send a really small number to log().
-  typedef real_t typename T::real_t;
+  using real_t = typename T::real_t;
   constexpr real_t epsilon = std::numeric_limits<real_t>::epsilon();
   constexpr real_t two_pi = 2 * M_PI;
 
@@ -30,7 +30,7 @@ template <typename T>
 typename T::real_t rnorm(T rng_state,
              typename T::real_t mean,
              typename T::real_t sd) {
-  T::real_t z = box_muller<T>(rng_state);
+  typename T::real_t z = box_muller<T>(rng_state);
   return z * sd + mean;
 }
 

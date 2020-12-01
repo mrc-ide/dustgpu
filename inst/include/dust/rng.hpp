@@ -23,7 +23,7 @@ public:
     n_(n), state_(n * rng_state_t<T>::size()) {
     auto len = rng_state_t<T>::size();
     auto n_seed = seed.size() / len;
-    auto state_it = state.begin();
+    auto state_it = state_.begin();
     for (size_t i = 0; i < n; ++i) {
       if (i < n_seed) {
         std::copy_n(seed.begin() + i * len, len, state_it);
@@ -31,7 +31,7 @@ public:
       } else {
         rng_state_t<T> prev = state(i - 1);
         for (size_t j = 0; j < len; ++j) {
-          state_it = prev[j];
+          *state_it = prev[j];
           state_it++;
         }
         xoshiro_jump(state(i));
@@ -85,7 +85,7 @@ template <typename T>
 device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
   device_rng_state_t<T> rng_state;
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
-    rng_state.s[i] = full_rng_state[j];
+    rng_state.s[i] = full_rng_state[i];
   }
   return rng_state;
 }
@@ -94,7 +94,7 @@ device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
 template <typename T>
 void putRNG(device_rng_state_t<T>& rng_state, dust::interleaved<uint64_t>& full_rng_state) {
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
-    full_rng_state[j] = rng_state.s[i];
+    full_rng_state[i] = rng_state.s[i];
   }
 }
 

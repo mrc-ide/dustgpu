@@ -49,7 +49,7 @@ void update_device(size_t step,
              const dust::interleaved<typename T::real_t> state,
              dust::interleaved<int> internal_int,
              dust::interleaved<typename T::real_t> internal_real,
-             dust::rng_state_t<typename T::real_t> rng_state,
+             dust::device_rng_state_t<typename T::real_t> rng_state,
              dust::interleaved<typename T::real_t> state_next);
 
 // This will become the __global__ kernel
@@ -69,7 +69,7 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
     dust::interleaved<real_t> p_internal_real(internal_real, i);
     dust::interleaved<uint64_t> p_rng(rng_state, i);
 
-    dust::rng_state_t<real_t> rng_block = loadRNG(p_rng);
+    dust::device_rng_state_t<real_t> rng_block = loadRNG(p_rng);
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
@@ -105,11 +105,6 @@ public:
       _model.update(_step, _y.data(), rng_state, _y_swap.data());
       _step++;
       std::swap(_y, _y_swap);
-      // DEBUG
-      for (int j = 0; j < size(); j++) {
-        printf("%.1f ", _y[j]);
-      }
-      printf("\n");
     }
   }
 
@@ -252,25 +247,11 @@ public:
     refresh_host();
     _stale_device = true;
 
-    // DEBUG
-    printf("RNG in\n");
-    std::vector<uint64_t> rng_in = _rng.raw_state();
-    for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
-      std::cout << *rng_bin << std::endl;
-    }
-
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
     for (size_t i = 0; i < _particles.size(); ++i) {
       _particles[i].run(step_end, _rng.state(i));
-    }
-
-    // DEBUG
-    printf("RNG out\n");
-    std::vector<uint64_t> rng_out = _rng.raw_state();
-    for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
-      std::cout << *rng_bin << std::endl;
     }
   }
 
@@ -297,7 +278,7 @@ public:
 
     run_particles<real_t, T>(step(), step_end, _particles.size(),
                   _yi, _yi_next, _internal_int, _internal_real,
-                  _rng);
+                  _rngi);
 
     // In the inner loop, the swap will keep the locally scoped interleaved variables
     // updated, but the interleaved variables passed in have not yet been updated.
@@ -499,14 +480,15 @@ private:
           rng_offset = stride_copy(rng.data(), p_rng[j], rng_offset, np);
         }
       }
-      _yi.setArray(y); // H -> D
+      // H -> D copies
+      _yi.setArray(y);
       _rngi.setArray(rng);
       _stale_device = false;
     }
   }
 
   // CUDA: eventually we need to have more refined methods here:
-  // CUDA:  cub::deviceselect to get just some state
+  // CUDA:  cub::deviceselect to get just some state (and ignore rng)
   //        (e.g. refresh_host_partial called by state
   //              refresh_host called by state_full)
   void refresh_host() {
@@ -517,7 +499,8 @@ private:
       std::vector<real_t> y(np * ny); // Interleaved state of all particles
       std::vector<uint64_t> rngi(np * rng_len); // Interleaved RNG state
       std::vector<uint64_t> rng(np * rng_len); //  Deinterleaved RNG state
-      _yi.getArray(y); // D -> H
+      // D -> H copies
+      _yi.getArray(y);
       _rngi.getArray(rngi);
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)

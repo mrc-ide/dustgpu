@@ -6,9 +6,10 @@
 namespace dust {
 namespace distr {
 
-template <typename real_t>
-int rpois(rng_state_t<real_t> rng_state,
-          typename rng_state_t<real_t>::real_t lambda) {
+template <typename T>
+int rpois(T rng_state,
+          typename T::real_t lambda) {
+  typedef real_t typename T::real_t;
   int x = 0;
   if (lambda < 10) {
     // Knuth's algorithm for generating Poisson random variates.
@@ -26,7 +27,7 @@ int rpois(rng_state_t<real_t> rng_state,
     // Keep trying until we surpass e^(-rate). This will take
     // expected time proportional to rate.
     while (true) {
-      real_t u = dust::unif_rand<real_t>(rng_state);
+      real_t u = dust::unif_rand<T>(rng_state);
       prod = prod * u;
       if (prod <= exp_neg_rate &&
           x <= std::numeric_limits<int>::max()) {
@@ -71,9 +72,9 @@ int rpois(rng_state_t<real_t> rng_state,
     const real_t inv_alpha = 1.1239 + 1.1328 / (b - 3.4);
 
     while (true) {
-      real_t u = dust::unif_rand<real_t>(rng_state);
+      real_t u = dust::unif_rand<T>(rng_state);
       u -= 0.5;
-      real_t v = dust::unif_rand<real_t>(rng_state);
+      real_t v = dust::unif_rand<T>(rng_state);
 
       real_t u_shifted = 0.5 - std::fabs(u);
       int k = floor((2 * a / u_shifted + b) * u + lambda + 0.43);

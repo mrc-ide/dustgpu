@@ -420,7 +420,7 @@ template <>
 void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
              dust::interleaved<int> internal_int,
              dust::interleaved<sir::real_t> internal_real,
-             dust::rng_state_t<sir::real_t> rng_state,
+             dust::device_rng_state_t<sir::real_t> rng_state,
              dust::interleaved<sir::real_t> state_next) {
   typedef sir::real_t real_t;
   typedef int int_t;

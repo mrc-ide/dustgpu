@@ -4,11 +4,11 @@
 namespace dust {
 namespace distr {
 
-template <typename real_t>
-real_t runif(rng_state_t<real_t> rng_state,
-             typename rng_state_t<real_t>::real_t min,
-             typename rng_state_t<real_t>::real_t max) {
-  return dust::unif_rand<real_t>(rng_state) * (max - min) + min;
+template <typename T>
+typename T::real_t runif(T rng_state,
+             typename T::real_t min,
+             typename T::real_t max) {
+  return dust::unif_rand<T>(rng_state) * (max - min) + min;
 }
 
 }

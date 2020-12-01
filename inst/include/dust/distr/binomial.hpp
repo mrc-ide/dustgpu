@@ -31,14 +31,15 @@ T fast_pow(T x, int n) {
 // random number from U(0, 1) and find the 'n' up the distribution
 // (given p) that corresponds to this
 template <typename T>
-T binomial_inversion(rng_state_t<T>& rng_state, int n, T p) {
-  T u = dust::unif_rand<T>(rng_state);
+typename T::real_t binomial_inversion(T& rng_state, int n, T p) {
+  typedef real_t typename T::real_t;
+  real_t u = dust::unif_rand<T>(rng_state);
 
   // This is equivalent to qbinom(u, n, p)
-  const T q = 1 - p;
-  const T r = p / q;
-  const T g = r * (n + 1);
-  T f = fast_pow(q, n);
+  const real_t q = 1 - p;
+  const real_t r = p / q;
+  const real_t g = r * (n + 1);
+  real_t f = fast_pow(q, n);
   int k = 0;
   while (u >= f) {
     u -= f;
@@ -64,7 +65,7 @@ inline double stirling_approx_tail(double k) {
 
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 template <typename T>
-inline double btrs(rng_state_t<T>& rng_state, double n, double p) {
+inline double btrs(T& rng_state, double n, double p) {
   // This is spq in the paper.
   const double stddev = std::sqrt(n * p * (1 - p));
 
@@ -114,9 +115,9 @@ inline double btrs(rng_state_t<T>& rng_state, double n, double p) {
   }
 }
 
-template <typename real_t>
-int rbinom(rng_state_t<real_t> rng_state, int n,
-           typename rng_state_t<real_t>::real_t p) {
+template <typename T>
+int rbinom(T rng_state, int n,
+           typename T::real_t p) {
   int draw;
 
   // Early exit:
@@ -135,7 +136,7 @@ int rbinom(rng_state_t<real_t> rng_state, int n,
     }
   */
 
-  real_t q = p;
+  T::real_t q = p;
   if (p > 0.5) {
     q = 1 - q;
   }

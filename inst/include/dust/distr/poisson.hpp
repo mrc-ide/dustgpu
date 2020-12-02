@@ -7,7 +7,7 @@ namespace dust {
 namespace distr {
 
 template <typename T>
-HD int rpois(T& rng_state,
+HOSTDEVICE int rpois(T& rng_state,
           typename T::real_t lambda) {
   using real_t = typename T::real_t;
   int x = 0;

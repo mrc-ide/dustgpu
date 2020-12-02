@@ -3,9 +3,9 @@
 
 #ifdef __NVCC__
 #include "cuda.cuh"
-#define D __device__
-#define H __host__
-#define HD __host__ __device
+#define DEVICE __device__
+#define HOST __host__
+#define HOSTDEVICE __host__ __device__
 #define KERNEL __global__
 
 #include <stdio.h>
@@ -34,9 +34,9 @@ static void HandleCUDAError(const char *file, int line,
 #define CUDA_CALL( err ) (HandleCUDAError(__FILE__, __LINE__ , err))
 
 #else
-#define D
-#define H
-#define HD
+#define DEVICE
+#define HOST
+#define HOSTDEVICE
 #define KERNEL
 #endif
 

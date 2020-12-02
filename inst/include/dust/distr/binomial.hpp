@@ -10,7 +10,7 @@ namespace distr {
 // "exponentiation by squaring"
 // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
 template <typename T>
-HD T fast_pow(T x, int n) {
+HOSTDEVICE T fast_pow(T x, int n) {
   T pow = 1.0;
   if (n != 0) {
     while (true) {
@@ -31,7 +31,7 @@ HD T fast_pow(T x, int n) {
 // random number from U(0, 1) and find the 'n' up the distribution
 // (given p) that corresponds to this
 template <typename T>
-HD typename T::real_t binomial_inversion(T& rng_state,
+HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
                                          int n,
                                          typename T::real_t p) {
   using real_t = typename T::real_t;
@@ -52,7 +52,7 @@ HD typename T::real_t binomial_inversion(T& rng_state,
   return k;
 }
 
-inline HD double stirling_approx_tail(double k) {
+inline HOSTDEVICE double stirling_approx_tail(double k) {
   static double kTailValues[] = {0.0810614667953272,  0.0413406959554092,
                                  0.0276779256849983,  0.02079067210376509,
                                  0.0166446911898211,  0.0138761288230707,
@@ -70,7 +70,7 @@ inline HD double stirling_approx_tail(double k) {
 
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 template <typename T>
-inline HD double btrs(T& rng_state, double n, double p) {
+inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
   // This is spq in the paper.
   const double stddev = std::sqrt(n * p * (1 - p));
 
@@ -125,7 +125,7 @@ inline HD double btrs(T& rng_state, double n, double p) {
 }
 
 template <typename T>
-HD int rbinom(T& rng_state, int n,
+HOSTDEVICE int rbinom(T& rng_state, int n,
               typename T::real_t p) {
   int draw;
 

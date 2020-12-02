@@ -8,7 +8,7 @@ namespace dust {
 namespace distr {
 
 template <typename T>
-HD inline typename T::real_t box_muller(T& rng_state) {
+HOSTDEVICE inline typename T::real_t box_muller(T& rng_state) {
   // This function implements the Box-Muller transform:
   // http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#Basic_form
   // Do not send a really small number to log().
@@ -34,9 +34,9 @@ HD inline typename T::real_t box_muller(T& rng_state) {
 // The type declarations for mean and sd are ugly but prevent the
 // compiler complaining about conflicting inferred types for real_t
 template <typename T>
-HD typename T::real_t rnorm(T& rng_state,
-             typename T::real_t mean,
-             typename T::real_t sd) {
+HOSTDEVICE typename T::real_t rnorm(T& rng_state,
+                                    typename T::real_t mean,
+                                    typename T::real_t sd) {
   typename T::real_t z = box_muller<T>(rng_state);
   return z * sd + mean;
 }

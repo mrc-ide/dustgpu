@@ -50,7 +50,7 @@ size_t stride_copy(T dest, uint64_t src, size_t at, size_t stride) {
 
 // Alternative (protoype - definition in model file)
 template <typename T>
-D void update_device(size_t step,
+DEVICE void update_device(size_t step,
              const dust::interleaved<typename T::real_t> state,
              dust::interleaved<int> internal_int,
              dust::interleaved<typename T::real_t> internal_real,
@@ -285,8 +285,8 @@ public:
     _stale_host = true;
 
 #ifdef __NVCC__
-    const size_t blockSize = 128; // Check later
-    const size_t blockCount = (_n_particles + blockSize - 1) / blockSize;
+    const size_t blockSize = 128;
+    const size_t blockCount = (_particles.size() + blockSize - 1) / blockSize;
     run_particles<real_t, T><<<blockCount, blockSize>>>(
                   step(), step_end, _particles.size(),
                   _yi.data(), _yi_next.data(),

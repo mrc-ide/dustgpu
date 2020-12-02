@@ -82,7 +82,7 @@ private:
 
 // Read state from global memory
 template <typename T>
-D device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
+DEVICE device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
   device_rng_state_t<T> rng_state;
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
     rng_state.s[i] = full_rng_state[i];
@@ -92,7 +92,7 @@ D device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
 
 // Write state into global memory
 template <typename T>
-D void putRNG(device_rng_state_t<T>& rng_state,
+DEVICE void putRNG(device_rng_state_t<T>& rng_state,
               dust::interleaved<uint64_t>& full_rng_state) {
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
     full_rng_state[i] = rng_state.s[i];

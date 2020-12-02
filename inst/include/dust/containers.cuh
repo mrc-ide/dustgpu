@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdlib> // malloc
 #include <cstring> // memcpy
+#include <vector>
 
 #include "cuda.cuh"
 
@@ -20,7 +21,7 @@ public:
   // Default constructor
   DeviceArray() : data_(nullptr), size_(0) {}
   // Constructor to allocate empty memory
-  DeviceArray(size_t size) : size_(size) {
+  DeviceArray(const size_t size) : size_(size) {
 #ifdef __NVCC__
     CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
     CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(T)));
@@ -33,7 +34,7 @@ public:
 #endif
   }
   // Constructor from vector
-  DeviceArray(std::vector<T>& data)
+  DeviceArray(const std::vector<T>& data)
     : size_(data.size()) {
 #ifdef __NVCC__
     CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
@@ -109,7 +110,7 @@ public:
     std::memcpy(dst.data(), data_, size_ * sizeof(T));
 #endif
   }
-  void setArray(std::vector<T>& src) {
+  void setArray(const std::vector<T>& src) {
     size_ = src.size();
 #ifdef __NVCC__
     CUDA_CALL(cudaMemcpy(data_, src.data(), size_ * sizeof(T),
@@ -139,22 +140,22 @@ private:
 template <typename T>
 class interleaved {
 public:
-  D interleaved(DeviceArray<T>& data, size_t offset, size_t stride)
+  DEVICE interleaved(DeviceArray<T>& data, size_t offset, size_t stride)
     : data_(data.data() + offset),
       stride_(stride) {}
-  D interleaved(T* data, size_t stride)
+  DEVICE interleaved(T* data, size_t stride)
     : data_(data),
       stride_(stride) {}
-  D T& operator[](size_t i) {
+  DEVICE T& operator[](size_t i) {
     return data_[i * stride_];
   }
-  D const T& operator[](size_t i) const {
+  DEVICE const T& operator[](size_t i) const {
     return data_[i * stride_];
   }
-  D interleaved<T> operator+(size_t by) {
+  DEVICE interleaved<T> operator+(size_t by) {
     return interleaved(data_ + by * stride_, stride_);
   }
-  D const interleaved<T> operator+(size_t by) const {
+  DEVICE const interleaved<T> operator+(size_t by) const {
     return interleaved(data_ + by * stride_, stride_);
   }
 private:

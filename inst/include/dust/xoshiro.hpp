@@ -177,20 +177,22 @@ HOST U unif_rand(T& state) {
   return U(value) / U(std::numeric_limits<uint64_t>::max());
 }
 
+// Template specialisations for the device
+#ifdef __NVCC__
 template <typename T, typename U = typename T::real_t>
 DEVICE U unif_rand(device_rng_state_t<T>& state) {
   const uint64_t value = xoshiro_next(state);
   return U(value) / U(18446744073709551616.0);
 }
 
-// Template specialisations for the device
-#ifdef __NVCC__
+template<>
 DEVICE double unif_rand(device_rng_state_t<double>& state) {
   const uint64_t value = xoshiro_next(state);
   // 18446744073709551616.0 == __ull2double_rn(UINT64_MAX)
   double rand = (__ddiv_rn(__ull2double_rn(value), 18446744073709551616.0));
   return rand;
 }
+template<>
 DEVICE float unif_rand(device_rng_state_t<float>& state) {
   const uint64_t value = xoshiro_next(state);
   float rand = (__fdiv_rn(__ull2float_rn(value), 18446744073709551616.0f));

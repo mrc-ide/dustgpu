@@ -2,12 +2,12 @@
 #define DUST_RNG_HPP
 
 #include <algorithm>
+#include "containers.cuh"
 #include "xoshiro.hpp"
 #include "distr/binomial.hpp"
 #include "distr/normal.hpp"
 #include "distr/poisson.hpp"
 #include "distr/uniform.hpp"
-#include "containers.cuh"
 
 namespace dust {
 
@@ -82,7 +82,7 @@ private:
 
 // Read state from global memory
 template <typename T>
-device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
+D device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
   device_rng_state_t<T> rng_state;
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
     rng_state.s[i] = full_rng_state[i];
@@ -92,8 +92,8 @@ device_rng_state_t<T> loadRNG(dust::interleaved<uint64_t>& full_rng_state) {
 
 // Write state into global memory
 template <typename T>
-void putRNG(device_rng_state_t<T>& rng_state,
-            dust::interleaved<uint64_t>& full_rng_state) {
+D void putRNG(device_rng_state_t<T>& rng_state,
+              dust::interleaved<uint64_t>& full_rng_state) {
   for (int i = 0; i < device_rng_state_t<T>::size(); i++) {
     full_rng_state[i] = rng_state.s[i];
   }

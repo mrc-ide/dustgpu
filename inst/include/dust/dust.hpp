@@ -2,7 +2,6 @@
 #define DUST_DUST_HPP
 
 #include <dust/rng.hpp>
-#include <dust/containers.cuh>
 
 #include <algorithm>
 #include <sstream>
@@ -51,24 +50,26 @@ size_t stride_copy(T dest, uint64_t src, size_t at, size_t stride) {
 
 // Alternative (protoype - definition in model file)
 template <typename T>
-void update_device(size_t step,
+D void update_device(size_t step,
              const dust::interleaved<typename T::real_t> state,
              dust::interleaved<int> internal_int,
              dust::interleaved<typename T::real_t> internal_real,
              dust::device_rng_state_t<typename T::real_t>& rng_state,
              dust::interleaved<typename T::real_t> state_next);
 
-// This will become the __global__ kernel
 template <typename real_t, typename T>
-void run_particles(size_t step_from, size_t step_to, size_t n_particles,
-                   real_t* state,
-                   real_t* state_next,
-                   int* internal_int,
-                   real_t* internal_real,
-                   uint64_t* rng_state) {
-  // int p_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  // if (p_idx < n_particles) {
+KERNEL void run_particles(size_t step_from, size_t step_to, size_t n_particles,
+                          real_t* state,
+                          real_t* state_next,
+                          int* internal_int,
+                          real_t* internal_real,
+                          uint64_t* rng_state) {
+#ifdef __NVCC__
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < n_particles) {
+#else
   for (size_t i = 0; i < n_particles; ++i) {
+#endif
     dust::interleaved<real_t> p_state(state + i, n_particles);
     dust::interleaved<real_t> p_state_next(state_next + i, n_particles);
     dust::interleaved<int> p_internal_int(internal_int + i, n_particles);
@@ -83,8 +84,10 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                        p_internal_real,
                        rng_block,
                        p_state_next);
+#ifdef __NVCC__
+      __syncwarp();
+#endif
 
-      // CUDA: This move may need a __device__ class explictly defined?
       dust::interleaved<real_t> tmp = p_state;
       p_state = p_state_next;
       p_state_next = tmp;
@@ -237,7 +240,7 @@ public:
   }
 
   // TODO: what to do with this one? Currently calls run,
-  // but should also support run_device
+  // but could also support run_device
   void set_step(const std::vector<size_t>& step) {
     const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
@@ -281,10 +284,22 @@ public:
     refresh_device();
     _stale_host = true;
 
+#ifdef __NVCC__
+    const size_t blockSize = 128; // Check later
+    const size_t blockCount = (_n_particles + blockSize - 1) / blockSize;
+    run_particles<real_t, T><<<blockCount, blockSize>>>(
+                  step(), step_end, _particles.size(),
+                  _yi.data(), _yi_next.data(),
+                  _internal_int.data(), _internal_real.data(),
+                  _rngi.data());
+    cudaDeviceSynchronize();
+#else
     run_particles<real_t, T>(step(), step_end, _particles.size(),
                   _yi.data(), _yi_next.data(),
                   _internal_int.data(), _internal_real.data(),
                   _rngi.data());
+#endif
+    set_step(step_end);
 
     // In the inner loop, the swap will keep the locally scoped interleaved variables
     // updated, but the interleaved variables passed in have not yet been updated.

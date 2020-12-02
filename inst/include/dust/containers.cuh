@@ -6,18 +6,7 @@
 #include <cstdlib> // malloc
 #include <cstring> // memcpy
 
-#ifdef __NVCC__
 #include "cuda.cuh"
-#define D __device__
-#define H __host__
-#define HD __host__ __device
-#define KERNEL __global__
-#else
-#define D
-#define H
-#define HD
-#define KERNEL
-#endif
 
 namespace dust {
 

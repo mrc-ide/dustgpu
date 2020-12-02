@@ -1,5 +1,13 @@
 #ifndef DUST_CUDA_CUH
 #define DUST_CUDA_CUH
+
+#ifdef __NVCC__
+#include "cuda.cuh"
+#define D __device__
+#define H __host__
+#define HD __host__ __device
+#define KERNEL __global__
+
 #include <stdio.h>
 
 #include <cuda.h>
@@ -24,5 +32,12 @@ static void HandleCUDAError(const char *file, int line,
 }
 
 #define CUDA_CALL( err ) (HandleCUDAError(__FILE__, __LINE__ , err))
+
+#else
+#define D
+#define H
+#define HD
+#define KERNEL
+#endif
 
 #endif

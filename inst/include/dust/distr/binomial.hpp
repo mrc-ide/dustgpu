@@ -10,7 +10,7 @@ namespace distr {
 // "exponentiation by squaring"
 // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
 template <typename T>
-T fast_pow(T x, int n) {
+HD T fast_pow(T x, int n) {
   T pow = 1.0;
   if (n != 0) {
     while (true) {
@@ -31,9 +31,9 @@ T fast_pow(T x, int n) {
 // random number from U(0, 1) and find the 'n' up the distribution
 // (given p) that corresponds to this
 template <typename T>
-typename T::real_t binomial_inversion(T& rng_state,
-                                      int n,
-                                      typename T::real_t p) {
+HD typename T::real_t binomial_inversion(T& rng_state,
+                                         int n,
+                                         typename T::real_t p) {
   using real_t = typename T::real_t;
   real_t u = dust::unif_rand<T>(rng_state);
 
@@ -52,22 +52,25 @@ typename T::real_t binomial_inversion(T& rng_state,
   return k;
 }
 
-inline double stirling_approx_tail(double k) {
+inline HD double stirling_approx_tail(double k) {
   static double kTailValues[] = {0.0810614667953272,  0.0413406959554092,
                                  0.0276779256849983,  0.02079067210376509,
                                  0.0166446911898211,  0.0138761288230707,
                                  0.0118967099458917,  0.0104112652619720,
                                  0.00925546218271273, 0.00833056343336287};
+  double tail;
   if (k <= 9) {
-    return kTailValues[static_cast<int>(k)];
+    tail = kTailValues[static_cast<int>(k)];
+  } else {
+    double kp1sq = (k + 1) * (k + 1);
+    tail = (1.0 / 12 - (1.0 / 360 - 1.0 / 1260 / kp1sq) / kp1sq) / (k + 1);
   }
-  double kp1sq = (k + 1) * (k + 1);
-  return (1.0 / 12 - (1.0 / 360 - 1.0 / 1260 / kp1sq) / kp1sq) / (k + 1);
+  return tail;
 }
 
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 template <typename T>
-inline double btrs(T& rng_state, double n, double p) {
+inline HD double btrs(T& rng_state, double n, double p) {
   // This is spq in the paper.
   const double stddev = std::sqrt(n * p * (1 - p));
 
@@ -81,6 +84,7 @@ inline double btrs(T& rng_state, double n, double p) {
   const double alpha = (2.83 + 5.1 / b) * stddev;
   const double m = std::floor((n + 1) * p);
 
+  double draw;
   while (true) {
     double u = dust::unif_rand<T, double>(rng_state);
     double v = dust::unif_rand<T, double>(rng_state);
@@ -94,7 +98,8 @@ inline double btrs(T& rng_state, double n, double p) {
     // the acceptance rate converges to ~79% (and in the lower
     // regime it is ~24%).
     if (us >= 0.07 && v <= v_r) {
-      return k;
+      draw = k;
+      break;
     }
     // Reject non-sensical answers.
     if (k < 0 || k > n) {
@@ -112,14 +117,16 @@ inline double btrs(T& rng_state, double n, double p) {
        stirling_approx_tail(m) + stirling_approx_tail(n - m) -
        stirling_approx_tail(k) - stirling_approx_tail(n - k));
     if (v <= upperbound) {
-      return k;
+      draw = k;
+      break;
     }
   }
+  return draw;
 }
 
 template <typename T>
-int rbinom(T& rng_state, int n,
-           typename T::real_t p) {
+HD int rbinom(T& rng_state, int n,
+              typename T::real_t p) {
   int draw;
 
   // Early exit:

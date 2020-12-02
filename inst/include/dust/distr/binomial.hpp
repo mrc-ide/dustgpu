@@ -30,10 +30,11 @@ HOSTDEVICE T fast_pow(T x, int n) {
 // Binomial random numbers via inversion (for low np only!). Draw a
 // random number from U(0, 1) and find the 'n' up the distribution
 // (given p) that corresponds to this
+__nv_exec_check_disable__
 template <typename T>
-HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
-                                         int n,
-                                         typename T::real_t p) {
+inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
+                                                        int n,
+                                                        typename T::real_t p) {
   using real_t = typename T::real_t;
   real_t u = dust::unif_rand<T>(rng_state);
 
@@ -69,6 +70,7 @@ inline HOSTDEVICE double stirling_approx_tail(double k) {
 }
 
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
+__nv_exec_check_disable__
 template <typename T>
 inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
   // This is spq in the paper.

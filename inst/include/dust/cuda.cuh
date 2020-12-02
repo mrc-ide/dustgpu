@@ -8,6 +8,9 @@
 #define HOSTDEVICE __host__ __device__
 #define KERNEL __global__
 
+ // This is necessary due to templates which are __host__ __device__
+#define __nv_exec_check_disable__ __pragma("nv_exec_check_disable")
+
 #include <stdio.h>
 
 #include <cuda.h>
@@ -43,6 +46,7 @@ static void HandleCUDAError(const char *file, int line,
 #define HOST
 #define HOSTDEVICE
 #define KERNEL
+#define __nv_exec_check_disable__
 #endif
 
 #endif

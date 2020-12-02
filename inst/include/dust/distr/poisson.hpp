@@ -6,6 +6,7 @@
 namespace dust {
 namespace distr {
 
+__nv_exec_check_disable__
 template <typename T>
 HOSTDEVICE int rpois(T& rng_state,
           typename T::real_t lambda) {

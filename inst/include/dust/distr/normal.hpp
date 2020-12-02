@@ -33,6 +33,7 @@ HOSTDEVICE inline typename T::real_t box_muller(T& rng_state) {
 
 // The type declarations for mean and sd are ugly but prevent the
 // compiler complaining about conflicting inferred types for real_t
+__nv_exec_check_disable__
 template <typename T>
 HOSTDEVICE typename T::real_t rnorm(T& rng_state,
                                     typename T::real_t mean,

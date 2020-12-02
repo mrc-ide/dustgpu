@@ -4,6 +4,7 @@
 namespace dust {
 namespace distr {
 
+__nv_exec_check_disable__
 template <typename T>
 HOSTDEVICE typename T::real_t runif(T& rng_state,
              typename T::real_t min,

@@ -27,6 +27,7 @@ public:
     int_t dim_m_1;
     int_t dim_m_2;
     int_t dim_n_IR;
+    int_t dim_n_RS;
     int_t dim_n_SI;
     int_t dim_p_SI;
     int_t dim_R;
@@ -45,6 +46,7 @@ public:
     std::vector<real_t> m;
     int_t N_age;
     std::vector<real_t> n_IR;
+    std::vector<real_t> n_RS;
     std::vector<real_t> n_SI;
     int_t offset_variable_I;
     int_t offset_variable_R;
@@ -64,14 +66,14 @@ public:
   size_t size_internal_real() const {
     // 3: beta, dt, p_IR
     return 3 + internal.dim_lambda + internal.dim_m + internal.dim_n_IR +
-      internal.dim_n_SI + internal.dim_p_SI + internal.dim_s_ij;
+      + internal.dim_n_RS + internal.dim_n_SI + internal.dim_p_SI + internal.dim_s_ij;
   }
 
   size_t size_internal_int() const {
-    // 14: dim_I, dim_R, dim_S, dim_lambda, dim_m, dim_m_1, dim_n_IR,
-    // dim_n_SI, dim_p_SI, dim_s_ij, dim_s_ij_1, dim_s_ij_2,
+    // 15: dim_I, dim_R, dim_S, dim_lambda, dim_m, dim_m_1, dim_n_IR,
+    // dim_n_RS, dim_n_SI, dim_p_SI, dim_s_ij, dim_s_ij_1, dim_s_ij_2,
     // offset_variable_I, offset_variable_R
-    return 14;
+    return 15;
   }
 
   // Big mess of functions for converting from an object into flat storage
@@ -84,6 +86,7 @@ public:
     j = stride_copy(dest, internal.lambda, j, stride);
     j = stride_copy(dest, internal.m, j, stride);
     j = stride_copy(dest, internal.n_IR, j, stride);
+    j = stride_copy(dest, internal.n_RS, j, stride);
     j = stride_copy(dest, internal.n_SI, j, stride);
     j = stride_copy(dest, internal.p_SI, j, stride);
     j = stride_copy(dest, internal.s_ij, j, stride);
@@ -99,6 +102,7 @@ public:
     j = stride_copy(dest, internal.dim_m, j, stride);
     j = stride_copy(dest, internal.dim_m_1, j, stride);
     j = stride_copy(dest, internal.dim_n_IR, j, stride);
+    j = stride_copy(dest, internal.dim_n_RS, j, stride);
     j = stride_copy(dest, internal.dim_n_SI, j, stride);
     j = stride_copy(dest, internal.dim_p_SI, j, stride);
     j = stride_copy(dest, internal.dim_s_ij, j, stride);
@@ -126,13 +130,16 @@ public:
     for (int_t i = 1; i <= internal.dim_n_IR; ++i) {
       internal.n_IR[i - 1] = dust::distr::rbinom(rng_state, std::round(I[i - 1]), internal.p_IR);
     }
+    for (int_t i = 1; i <= internal.dim_n_RS; ++i) {
+      internal.n_RS[i - 1] = dust::distr::rbinom(rng_state, std::round(R[i - 1]), 0.1);
+    }
     for (int_t i = 1; i <= internal.dim_s_ij_1; ++i) {
       for (int_t j = 1; j <= internal.dim_s_ij_2; ++j) {
         internal.s_ij[i - 1 + internal.dim_s_ij_1 * (j - 1)] = internal.m[internal.dim_m_1 * (j - 1) + i - 1] * I[i - 1];
       }
     }
     for (int_t i = 1; i <= internal.dim_R; ++i) {
-      state_next[internal.offset_variable_R + i - 1] = R[i - 1] + internal.n_IR[i - 1];
+      state_next[internal.offset_variable_R + i - 1] = R[i - 1] + internal.n_IR[i - 1] - internal.n_RS[i - 1];
     }
     for (int_t i = 1; i <= internal.dim_lambda; ++i) {
       internal.lambda[i - 1] = internal.beta / (real_t) N * odin_sum2(internal.s_ij.data(), i - 1, i, 0, internal.dim_s_ij_2, internal.dim_s_ij_1);
@@ -147,7 +154,7 @@ public:
       state_next[internal.offset_variable_I + i - 1] = I[i - 1] + internal.n_SI[i - 1] - internal.n_IR[i - 1];
     }
     for (int_t i = 1; i <= internal.dim_S; ++i) {
-      state_next[1 + i - 1] = S[i - 1] - internal.n_SI[i - 1];
+      state_next[1 + i - 1] = S[i - 1] - internal.n_SI[i - 1] + internal.n_RS[i - 1];
     }
   }
 private:
@@ -432,13 +439,14 @@ void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
   int dim_m = internal_int[4];
   int dim_m_1 = internal_int[5];
   int dim_n_IR = internal_int[6];
-  int dim_n_SI = internal_int[7];
-  int dim_p_SI = internal_int[8];
-  int dim_s_ij = internal_int[9];
-  int dim_s_ij_1 = internal_int[10];
-  int dim_s_ij_2 = internal_int[11];
-  int offset_variable_I = internal_int[12];
-  int offset_variable_R = internal_int[13];
+  int dim_n_RS = internal_int[7];
+  int dim_n_SI = internal_int[8];
+  int dim_p_SI = internal_int[9];
+  int dim_s_ij = internal_int[10];
+  int dim_s_ij_1 = internal_int[11];
+  int dim_s_ij_2 = internal_int[12];
+  int offset_variable_I = internal_int[13];
+  int offset_variable_R = internal_int[14];
 
   // Unpack the real vector; the issue here is that we need another
   // whole swath of offsets to make this work well. I know these ahead
@@ -447,7 +455,8 @@ void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
   int offset_internal_lambda = 3;
   int offset_internal_m = offset_internal_lambda + dim_lambda;
   int offset_internal_n_IR = offset_internal_m + dim_m;
-  int offset_internal_n_SI = offset_internal_n_IR + dim_n_IR;
+  int offset_internal_n_RS = offset_internal_n_IR + dim_n_IR;
+  int offset_internal_n_SI = offset_internal_n_RS + dim_n_RS;
   int offset_internal_p_SI = offset_internal_n_SI + dim_n_SI;
   int offset_internal_s_ij = offset_internal_p_SI + dim_p_SI;
 
@@ -460,6 +469,7 @@ void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
   dust::interleaved<real_t> lambda = internal_real + offset_internal_lambda;
   dust::interleaved<real_t> m = internal_real + offset_internal_m;
   dust::interleaved<real_t> n_IR = internal_real + offset_internal_n_IR;
+  dust::interleaved<real_t> n_RS = internal_real + offset_internal_n_RS;
   dust::interleaved<real_t> n_SI = internal_real + offset_internal_n_SI;
   dust::interleaved<real_t> p_SI = internal_real + offset_internal_p_SI;
   dust::interleaved<real_t> s_ij = internal_real + offset_internal_s_ij;
@@ -473,13 +483,16 @@ void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
   for (int_t i = 1; i <= dim_n_IR; ++i) {
     n_IR[i - 1] = dust::distr::rbinom(rng_state, std::round(I[i - 1]), p_IR);
   }
+  for (int_t i = 1; i <= dim_n_RS; ++i) {
+    n_RS[i - 1] = dust::distr::rbinom(rng_state, std::round(R[i - 1]), 0.1);
+  }
   for (int_t i = 1; i <= dim_s_ij_1; ++i) {
     for (int_t j = 1; j <= dim_s_ij_2; ++j) {
       s_ij[i - 1 + dim_s_ij_1 * (j - 1)] = m[dim_m_1 * (j - 1) + i - 1] * I[i - 1];
     }
   }
   for (int_t i = 1; i <= dim_R; ++i) {
-    state_next[offset_variable_R + i - 1] = R[i - 1] + n_IR[i - 1];
+    state_next[offset_variable_R + i - 1] = R[i - 1] + n_IR[i - 1] - n_RS[i - 1];
   }
   for (int_t i = 1; i <= dim_lambda; ++i) {
     lambda[i - 1] = beta / (real_t) N * odin_sum2(s_ij, i - 1, i, 0, dim_s_ij_2, dim_s_ij_1);
@@ -494,7 +507,7 @@ void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
     state_next[offset_variable_I + i - 1] = I[i - 1] + n_SI[i - 1] - n_IR[i - 1];
   }
   for (int_t i = 1; i <= dim_S; ++i) {
-    state_next[1 + i - 1] = S[i - 1] - n_SI[i - 1];
+    state_next[1 + i - 1] = S[i - 1] - n_SI[i - 1] + n_RS[i - 1];
   }
 }
 
@@ -530,6 +543,7 @@ sir::init_t dust_data<sir>(cpp11::list user) {
   internal.dim_m_1 = internal.N_age;
   internal.dim_m_2 = internal.N_age;
   internal.dim_n_IR = internal.N_age;
+  internal.dim_n_RS = internal.N_age;
   internal.dim_n_SI = internal.N_age;
   internal.dim_p_SI = internal.N_age;
   internal.dim_R = internal.N_age;
@@ -542,6 +556,7 @@ sir::init_t dust_data<sir>(cpp11::list user) {
   internal.initial_S = std::vector<real_t>(internal.dim_S);
   internal.lambda = std::vector<real_t>(internal.dim_lambda);
   internal.n_IR = std::vector<real_t>(internal.dim_n_IR);
+  internal.n_RS = std::vector<real_t>(internal.dim_n_RS);
   internal.n_SI = std::vector<real_t>(internal.dim_n_SI);
   internal.p_SI = std::vector<real_t>(internal.dim_p_SI);
   internal.dim_m = internal.dim_m_1 * internal.dim_m_2;

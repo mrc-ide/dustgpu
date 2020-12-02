@@ -171,6 +171,18 @@ inline HOST void xoshiro_long_jump(rng_state_t<T> state) {
   state[3] = s3;
 }
 
+template <typename T, typename U = typename T::real_t>
+HOST U unif_rand(T& state) {
+  const uint64_t value = xoshiro_next(state);
+  return U(value) / U(std::numeric_limits<uint64_t>::max());
+}
+
+template <typename T, typename U = typename T::real_t>
+DEVICE U unif_rand(device_rng_state_t<T>& state) {
+  const uint64_t value = xoshiro_next(state);
+  return U(value) / U(18446744073709551616.0);
+}
+
 // Template specialisations for the device
 #ifdef __NVCC__
 DEVICE double unif_rand(device_rng_state_t<double>& state) {
@@ -185,12 +197,6 @@ DEVICE float unif_rand(device_rng_state_t<float>& state) {
   return rand;
 }
 #endif
-
-template <typename T, typename U = typename T::real_t>
-HOST U unif_rand(T& state) {
-  const uint64_t value = xoshiro_next(state);
-  return U(value) / U(std::numeric_limits<uint64_t>::max());
-}
 
 }
 

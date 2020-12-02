@@ -197,8 +197,17 @@ public:
     _rng(n_particles, seed),
     _stale_host(false),
     _stale_device(true) {
+#ifdef __NVCC__
+    cudaProfilerStart();
+#endif
     initialise(data, step, n_particles);
   }
+
+#ifdef __NVCC__
+  ~Dust() {
+    cudaProfilerStop();
+  }
+#endif
 
   void reset(const init_t data, const size_t step) {
     const size_t n_particles = _particles.size();
@@ -426,6 +435,10 @@ public:
   }
 
 private:
+  // delete move and copy to avoid accidentally using them
+  Dust ( const Dust & ) = delete;
+  Dust ( Dust && ) = delete;
+
   std::vector<size_t> _index;
   const size_t _n_threads;
   // CUDA: this needs copying to and from device

@@ -48,7 +48,7 @@ struct device_rng_state_t {
     return 4;
   }
   uint64_t s[4];
-  __OPENCL_MEMORY_SCOPE_ALL_SVM_DEVICES uint64_t& operator[](size_t i) {
+  DEVICE uint64_t& operator[](size_t i) {
     return s[i];
   }
 };

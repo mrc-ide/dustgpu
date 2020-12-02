@@ -6,6 +6,19 @@
 #include <cstdlib> // malloc
 #include <cstring> // memcpy
 
+#ifdef __NVCC__
+#include "cuda.cuh"
+#define D __device__
+#define H __host__
+#define HD __host__ __device
+#define KERNEL __global__
+#else
+#define D
+#define H
+#define HD
+#define KERNEL
+#endif
+
 namespace dust {
 
 // This is all host code
@@ -19,33 +32,54 @@ public:
   DeviceArray() : data_(nullptr), size_(0) {}
   // Constructor to allocate empty memory
   DeviceArray(size_t size) : size_(size) {
+#ifdef __NVCC__
+    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
+    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(T)));
+#else
     data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
       throw std::runtime_error("malloc failed");
     }
-    std::memset(data_, 0, size_);
+    std::memset(data_, 0, size_ * sizeof(T));
+#endif
   }
   // Constructor from vector
   DeviceArray(std::vector<T>& data)
     : size_(data.size()) {
+#ifdef __NVCC__
+    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
+    CUDA_CALL(cudaMemcpy(data_, data.data(), size_ * sizeof(T),
+                         cudaMemcpyDefault));
+#else
     data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
       throw std::runtime_error("malloc failed");
     }
     std::memcpy(data_, data.data(), size_ * sizeof(T));
+#endif
   }
-  // TODO: should we just '= delete' the rule of five methods below?
   // Copy
   DeviceArray(const DeviceArray& other)
     : size_(other.size_) {
-      std::memcpy(data_, other.data_, size_ * sizeof(T));
+#ifdef __NVCC__
+    CUDA_CALL(cudaMemcpy(data_, other.data_, size_ * sizeof(T),
+                         cudaMemcpyDefault));
+#else
+    std::memcpy(data_, other.data_, size_ * sizeof(T));
+#endif
   }
   // Copy assign
   DeviceArray& operator=(const DeviceArray& other) {
     if (this != &other) {
-      std::free(data_);
       size_ = other.size_;
+#ifdef __NVCC__
+      CUDA_CALL(cudaFree(data_));
+      CUDA_CALL(cudaMemcpy(data_, other.data_, size_ * sizeof(T),
+                           cudaMemcpyDefault));
+#else
+      std::free(data_);
       std::memcpy(data_, other.data_, size_ * sizeof(T));
+#endif
     }
     return *this;
   }
@@ -59,7 +93,11 @@ public:
   // Move assign
   DeviceArray& operator=(DeviceArray&& other) {
     if (this != &other) {
+#ifdef __NVCC__
+      CUDA_CALL(cudaFree(data_));
+#else
       std::free(data_);
+#endif
       data_ = other.data_;
       size_ = other.size_;
       other.data_ = nullptr;
@@ -68,14 +106,28 @@ public:
     return *this;
   }
   ~DeviceArray() {
+#ifdef __NVCC__
+    CUDA_CALL(cudaFree(data_));
+#else
     std::free(data_);
+#endif
   }
   void getArray(std::vector<T>& dst) const {
+#ifdef __NVCC__
+    CUDA_CALL(cudaMemcpy(dst.data(), data_, size_ * sizeof(T),
+                         cudaMemcpyDefault));
+#else
     std::memcpy(dst.data(), data_, size_ * sizeof(T));
+#endif
   }
   void setArray(std::vector<T>& src) {
     size_ = src.size();
+#ifdef __NVCC__
+    CUDA_CALL(cudaMemcpy(data_, src.data(), size_ * sizeof(T),
+                         cudaMemcpyDefault));
+#else
     std::memcpy(data_, src.data(), size_ * sizeof(T));
+#endif
   }
   T* data() {
     return data_;
@@ -98,25 +150,22 @@ private:
 template <typename T>
 class interleaved {
 public:
-  interleaved(DeviceArray<T>& data, size_t offset, size_t stride)
+  D interleaved(DeviceArray<T>& data, size_t offset, size_t stride)
     : data_(data.data() + offset),
       stride_(stride) {}
-  interleaved(T* data, size_t stride)
+  D interleaved(T* data, size_t stride)
     : data_(data),
       stride_(stride) {}
-  // I feel like there might be some way to define these with inheritance
-  // but not sure as this would be the base class, and it would take the child
-  // class in the constructor
-  T& operator[](size_t i) {
+  D T& operator[](size_t i) {
     return data_[i * stride_];
   }
-  const T& operator[](size_t i) const {
+  D const T& operator[](size_t i) const {
     return data_[i * stride_];
   }
-  interleaved<T> operator+(size_t by) {
+  D interleaved<T> operator+(size_t by) {
     return interleaved(data_ + by * stride_, stride_);
   }
-  const interleaved<T> operator+(size_t by) const {
+  D const interleaved<T> operator+(size_t by) const {
     return interleaved(data_ + by * stride_, stride_);
   }
 private:

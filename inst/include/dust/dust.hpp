@@ -61,28 +61,21 @@ void update_device(size_t step,
 // This will become the __global__ kernel
 template <typename real_t, typename T>
 void run_particles(size_t step_from, size_t step_to, size_t n_particles,
-                   dust::DeviceArray<real_t>& state,
-                   dust::DeviceArray<real_t>& state_next,
-                   dust::DeviceArray<int>& internal_int,
-                   dust::DeviceArray<real_t>& internal_real,
-                   dust::DeviceArray<uint64_t>& rng_state) {
+                   real_t* state,
+                   real_t* state_next,
+                   int* internal_int,
+                   real_t* internal_real,
+                   uint64_t* rng_state) {
   // int p_idx = blockIdx.x * blockDim.x + threadIdx.x;
   // if (p_idx < n_particles) {
   for (size_t i = 0; i < n_particles; ++i) {
-    dust::interleaved<real_t> p_state(state, i);
-    dust::interleaved<real_t> p_state_next(state_next, i);
-    dust::interleaved<int> p_internal_int(internal_int, i);
-    dust::interleaved<real_t> p_internal_real(internal_real, i);
-    dust::interleaved<uint64_t> p_rng(rng_state, i);
+    dust::interleaved<real_t> p_state(state + i, n_particles);
+    dust::interleaved<real_t> p_state_next(state_next + i, n_particles);
+    dust::interleaved<int> p_internal_int(internal_int + i, n_particles);
+    dust::interleaved<real_t> p_internal_real(internal_real + i, n_particles);
+    dust::interleaved<uint64_t> p_rng(rng_state + i, n_particles);
 
     dust::device_rng_state_t<real_t> rng_block = dust::loadRNG<real_t>(p_rng);
-
-    // DEBUG
-    printf("RNG in\n");
-    for (int i = 0; i < 4; ++i) {
-      std::cout << rng_block[i] << std::endl;
-    }
-
     for (int curr_step = step_from; curr_step < step_to; ++curr_step) {
       update_device<T>(curr_step,
                        p_state,
@@ -97,12 +90,6 @@ void run_particles(size_t step_from, size_t step_to, size_t n_particles,
       p_state_next = tmp;
     }
     dust::putRNG(rng_block, p_rng);
-
-    printf("RNG out\n");
-    for (int i = 0; i < 4; ++i) {
-      std::cout << p_rng[i] << std::endl;
-    }
-
   }
 }
 
@@ -265,26 +252,11 @@ public:
   void run(const size_t step_end) {
     refresh_host();
     _stale_device = true;
-
-    // DEBUG
-    std::cout << "RNG in" << std::endl;
-    std::vector<uint64_t> rng_in = _rng.export_state();
-    for (auto rng_bin = rng_in.begin(); rng_bin != rng_in.end(); rng_bin++) {
-      std::cout << *rng_bin << std::endl;
-    }
-
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
     for (size_t i = 0; i < _particles.size(); ++i) {
       _particles[i].run(step_end, _rng.state(i));
-    }
-
-    // DEBUG
-    std::cout << "RNG out" << std::endl;
-    std::vector<uint64_t> rng_out = _rng.export_state();
-    for (auto rng_bin = rng_out.begin(); rng_bin != rng_out.end(); rng_bin++) {
-      std::cout << *rng_bin << std::endl;
     }
   }
 
@@ -310,8 +282,9 @@ public:
     _stale_host = true;
 
     run_particles<real_t, T>(step(), step_end, _particles.size(),
-                  _yi, _yi_next, _internal_int, _internal_real,
-                  _rngi);
+                  _yi.data(), _yi_next.data(),
+                  _internal_int.data(), _internal_real.data(),
+                  _rngi.data());
 
     // In the inner loop, the swap will keep the locally scoped interleaved variables
     // updated, but the interleaved variables passed in have not yet been updated.
@@ -478,14 +451,14 @@ private:
       _particles[i].internal_int(int_data + i, stride);
       _particles[i].internal_real(real_data + i, stride);
     }
-    _internal_int = dust::DeviceArray<int>(int_vec, stride);
-    _internal_real = dust::DeviceArray<real_t>(real_vec, stride);
+    _internal_int = dust::DeviceArray<int>(int_vec);
+    _internal_real = dust::DeviceArray<real_t>(real_vec);
 
     // Set state (on device)
-    _yi = dust::DeviceArray<real_t>(n * n_particles, n_particles);
-    _yi_next = dust::DeviceArray<real_t>(n * n_particles, n_particles);
+    _yi = dust::DeviceArray<real_t>(n * n_particles);
+    _yi_next = dust::DeviceArray<real_t>(n * n_particles);
     size_t rng_len = dust::rng_state_t<real_t>::size();
-    _rngi = dust::DeviceArray<uint64_t>(rng_len * n_particles, n_particles);
+    _rngi = dust::DeviceArray<uint64_t>(rng_len * n_particles);
   }
 
   // CUDA: eventually we need to have more refined methods here:

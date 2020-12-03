@@ -13,13 +13,17 @@
 
 #include <stdio.h>
 
+// Standard cuda library functions
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
 #include <device_launch_parameters.h>
-#include <cpp11/protect.hpp>
 
+// cub functions (included with CUDA>=11; needs downloading otherwise)
 #include <cub/device/device_select.cuh>
+
+// R/cpp11 includes
+#include <cpp11/protect.hpp>
 
 static void HandleCUDAError(const char *file, int line,
                             cudaError_t status = cudaGetLastError()) {

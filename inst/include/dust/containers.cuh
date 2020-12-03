@@ -33,6 +33,19 @@ public:
     std::memset(data_, 0, size_ * sizeof(T));
 #endif
   }
+    // Constructor to allocate size in bytes (for e.g. void type)
+  DeviceArray(const size_t size, const size_t byte_size) : size_(size) {
+#ifdef __NVCC__
+    CUDA_CALL(cudaMalloc((void**)&data_, byte_size));
+    CUDA_CALL(cudaMemset(data_, 0, byte_size));
+#else
+    data_ = (T*) std::malloc(byte_size);
+    if (!data_) {
+      throw std::runtime_error("malloc failed");
+    }
+    std::memset(data_, 0, byte_size);
+#endif
+  }
   // Constructor from vector
   DeviceArray(const std::vector<T>& data)
     : size_(data.size()) {

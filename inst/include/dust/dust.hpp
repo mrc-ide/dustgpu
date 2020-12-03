@@ -196,7 +196,8 @@ public:
     _n_threads(n_threads),
     _rng(n_particles, seed),
     _stale_host(false),
-    _stale_device(true) {
+    _stale_device(true),
+    _tmp_storage_bytes(0) {
 #ifdef __NVCC__
     cudaProfilerStart();
 #endif
@@ -220,6 +221,7 @@ public:
   // range [0, n-1]
   void set_index(const std::vector<size_t>& index) {
     _index = index;
+    set_device_index();
   }
 
   // It's the callee's responsibility to ensure this is the correct length:
@@ -248,8 +250,8 @@ public:
     }
   }
 
-  // TODO: what to do with this one? Currently calls run,
-  // but could also support run_device
+  // TODO: what to do with this one? Currently calls Dust::run(),
+  // but could also support run_device. Leaving as CPU only for now
   void set_step(const std::vector<size_t>& step) {
     const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
@@ -274,22 +276,6 @@ public:
 
   void run_device(const size_t step_end) {
     // Using same name here as in the prototype for simplicity.
-    //
-    // In order to make the implementation here as easy to think about
-    // as possible, we'll create massive vectors for all the bits used
-    // here. We'll want to think about that generally when getting the
-    // GPU version really working as if we can avoid doing an
-    // extraction here and maintain state on the device as much as
-    // possible, things will likely be faster and easier. The
-    // initialisation below is far from the most efficient, but should
-    // work for now.
-    //
-    // We need to modify here on return:
-    //
-    // state
-    // rng_state
-    //
-    // as these are required to continue on with the model.
     refresh_device();
     _stale_host = true;
 
@@ -441,8 +427,6 @@ private:
 
   std::vector<size_t> _index;
   const size_t _n_threads;
-  // CUDA: this needs copying to and from device
-  // CUDA: needs a putRNG/getRNG within kernel
   dust::pRNG<real_t> _rng;
   std::vector<Particle<T>> _particles;
 
@@ -452,6 +436,13 @@ private:
   dust::DeviceArray<int> _internal_int;
   dust::DeviceArray<uint64_t> _rngi;
 
+  // For the index on the device
+  dust::DeviceArray<char> _indexi;
+  dust::DeviceArray<real_t> _yi_selected;
+  dust::DeviceArray<void> _select_tmp;
+  dust::DeviceArray<int> _num_selected;
+  size_t _tmp_storage_bytes;
+
   void initialise(const init_t data, const size_t step,
                   const size_t n_particles) {
     _particles.clear();
@@ -460,12 +451,16 @@ private:
       _particles.push_back(Particle<T>(data, step));
     }
 
+    // Set the index
     const size_t n = n_state_full();
     _index.clear();
     _index.reserve(n);
+    std::vector<char> device_index(n * n_particles, 1); // std::vector<bool> is specialised and cannot be used here
     for (size_t i = 0; i < n; ++i) {
       _index.push_back(i);
     }
+    _indexi = dust::DeviceArray<char>(device_index);
+    _num_selected = dust::DeviceArray<int>(1);
 
     // Set internal state (on device)
     size_t int_len = size_internal_int();
@@ -482,11 +477,15 @@ private:
     _internal_int = dust::DeviceArray<int>(int_vec);
     _internal_real = dust::DeviceArray<real_t>(real_vec);
 
-    // Set state (on device)
+    // Allocate memory for state + rng (on device)
     _yi = dust::DeviceArray<real_t>(n * n_particles);
     _yi_next = dust::DeviceArray<real_t>(n * n_particles);
+    _yi_selected = dust::DeviceArray<real_t>(n * n_particles);
     size_t rng_len = dust::rng_state_t<real_t>::size();
     _rngi = dust::DeviceArray<uint64_t>(rng_len * n_particles);
+#ifdef __NVCC__
+    set_cub_tmp();
+#endif
   }
 
   // CUDA: eventually we need to have more refined methods here:
@@ -553,6 +552,35 @@ private:
       _stale_host = false;
     }
   }
+
+  // Sets a boolean index on the device marking the elements of interleaved
+  // state to pull down when requested
+  void set_device_index() {
+    size_t n_particles = _particles.size();
+    std::vector<char> bool_idx(n_state_full() * n_particles), 0);
+    for (auto idx_pos = _index.cbegin(); idx_pos != _index.cend(); idx_pos++) {
+      std::fill_n(bool_idx.begin() + (*idx_pos * n_particles), n_particles, 1);
+    }
+    _indexi.setArray(bool_idx);
+#ifdef __NVCC__
+    set_cub_tmp();
+#endif
+  }
+
+#ifdef __NVCC__
+  void set_cub_tmp() {
+    _select_tmp = dust::DeviceArray<void>(); // Free the array before running below
+    cub::DeviceSelect::Flagged(_select_tmp.data(),
+                               _temp_storage_bytes,
+                               _yi.data(),
+                               _indexi.data(),
+                               _yi_selected.data(),
+                               _num_selected,
+                               _yi.size());
+    // Set an array giving the size in bytes, as void as no length
+    _select_tmp = dust::DeviceArray<void>(_yi.size(), _temp_storage_bytes);
+  }
+#endif
 };
 
 // NB: not needed on GPU for now

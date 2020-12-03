@@ -19,7 +19,7 @@ size_t destride_copy(T dest, U src, size_t at, size_t stride) {
   for (size_t i = 0; at < src.size(); ++i, at += stride) {
     dest[i] = src[at];
   }
-  return at;
+  return i;
 }
 
 template <typename T, typename U, typename Enable = void>
@@ -307,15 +307,44 @@ public:
   }
 
   void state(std::vector<real_t>& end_state) {
-    refresh_host();
+    if (_stale_host) {
+#ifdef __NVCC__
+      // Run the selection and copy items back
+      cub::DeviceSelect::Flagged(_select_tmp.data(),
+                                 _temp_storage_bytes,
+                                 _yi.data(),
+                                 _indexi.data(),
+                                 _yi_selected.data(),
+                                 _num_selected,
+                                 _yi.size());
+      size_t np = particles.size();
+      std::vector<real_t> yi_selected(np * _index.size());
+      _yi_selected.getArray(yi_selected)
+
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(static) num_threads(_n_threads)
+      #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
-    for (size_t i = 0; i < _particles.size(); ++i) {
-      _particles[i].state(_index, end_state.begin() + i * _index.size());
+      for (size_t i = 0; i < np; ++i) {
+        size_t offset = i * _index.size();
+        destride_copy(end_state.data() + offset, yi_selected, i, np);
+      }
+#else
+      refresh_host();
+#endif
+    }
+    if (!_stale_host) {
+#ifdef _OPENMP
+      #pragma omp parallel for schedule(static) num_threads(_n_threads)
+#endif
+      for (size_t i = 0; i < _particles.size(); ++i) {
+        _particles[i].state(_index, end_state.begin() + i * _index.size());
+      }
     }
   }
 
+  // Assuming this is less frequently called than the above
+  // With a passed index. We could send this to device and use the method above
+  // but may be quicker just to copy the whole state in that case
   void state(std::vector<size_t> index,
              std::vector<real_t>& end_state) {
     refresh_host();

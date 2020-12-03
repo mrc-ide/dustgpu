@@ -307,6 +307,8 @@ public:
   }
 
   void state(std::vector<real_t>& end_state) {
+      size_t np = particles.size();
+      size_t index_size = _index.size();
     if (_stale_host) {
 #ifdef __NVCC__
       // Run the selection and copy items back
@@ -317,15 +319,14 @@ public:
                                  _yi_selected.data(),
                                  _num_selected,
                                  _yi.size());
-      size_t np = particles.size();
-      std::vector<real_t> yi_selected(np * _index.size());
+      std::vector<real_t> yi_selected(np * index_size);
       _yi_selected.getArray(yi_selected)
 
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
       for (size_t i = 0; i < np; ++i) {
-        size_t offset = i * _index.size();
+        size_t offset = i * index_size;
         destride_copy(end_state.data() + offset, yi_selected, i, np);
       }
 #else
@@ -336,8 +337,8 @@ public:
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
-      for (size_t i = 0; i < _particles.size(); ++i) {
-        _particles[i].state(_index, end_state.begin() + i * _index.size());
+      for (size_t i = 0; i < np; ++i) {
+        _particles[i].state(_index, end_state.begin() + i * index_size);
       }
     }
   }
@@ -484,10 +485,10 @@ private:
     const size_t n = n_state_full();
     _index.clear();
     _index.reserve(n);
-    std::vector<char> device_index(n * n_particles, 1); // std::vector<bool> is specialised and cannot be used here
     for (size_t i = 0; i < n; ++i) {
       _index.push_back(i);
     }
+    std::vector<char> device_index(n * n_particles, 1); // std::vector<bool> is specialised and cannot be used here
     _indexi = dust::DeviceArray<char>(device_index);
     _num_selected = dust::DeviceArray<int>(1);
 
@@ -549,11 +550,8 @@ private:
     }
   }
 
-  // CUDA: eventually we need to have more refined methods here:
-  // CUDA:  cub::deviceselect to get just some state (and ignore rng)
-  //        (e.g. refresh_host_partial called by state
-  //              refresh_host called by state_full)
   // TODO: could have RNG refresh/state refresh as separate functions
+  // Although RNG is basically part of state, so maybe this makes sense
   void refresh_host() {
     if (_stale_host) {
       const size_t np = n_particles(), ny = n_state_full();
@@ -598,7 +596,9 @@ private:
 
 #ifdef __NVCC__
   void set_cub_tmp() {
-    _select_tmp = dust::DeviceArray<void>(); // Free the array before running below
+    // Free the array before running below
+    _select_tmp = dust::DeviceArray<void>();
+    _temp_storage_bytes = 0;
     cub::DeviceSelect::Flagged(_select_tmp.data(),
                                _temp_storage_bytes,
                                _yi.data(),

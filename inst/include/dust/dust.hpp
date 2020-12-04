@@ -57,6 +57,20 @@ DEVICE void update_device(size_t step,
              dust::device_rng_state_t<typename T::real_t>& rng_state,
              dust::interleaved<typename T::real_t> state_next);
 
+template<typename real_t>
+KERNEL void device_scatter(int* scatter_index,
+                           real_t* state,
+                           real_t* scatter_state,
+                           size_t state_size) {
+#ifdef __NVCC__
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < state_size) {
+#else
+  for (size_t i = 0; i < state_size; ++i) {
+    scatter_state[i] = state[scatter_index[i]];
+  }
+}
+
 template <typename real_t, typename T>
 KERNEL void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                           real_t* state,
@@ -384,13 +398,53 @@ public:
   // CUDA: run this, or a scatter kernel, depending on which
   // variables are stale
   void reorder(const std::vector<size_t>& index) {
-    _stale_device = true;
-    for (size_t i = 0; i < _particles.size(); ++i) {
-      size_t j = index[i];
-      _particles[i].set_state(_particles[j]);
-    }
-    for (auto& p : _particles) {
-      p.swap();
+    if (_stale_host) {
+      size_t n_particles = _particles.size();
+      size_t n_state = n_state_full();
+
+      // e.g. 4 particles with 3 states ABC stored on device as
+      // [1_A, 2_A, 3_A, 4_A, 1_B, 2_B, 3_B, 4_B, 1_C, 2_C, 3_C, 4_C]
+      // e.g. index [3, 1, 3, 2] with would be
+      // [3_A, 3_B, 3_C, 1_A, 1_B, 1_C, 3_A, 3_B, 3_C, 2_A, 2_B, 2_C] not interleaved
+      // [3_A, 1_A, 3_A, 2_A, 3_B, 1_B, 3_B, 2_B, 3_C, 1_C, 3_C, 2_C] interleaved
+      // i.e. input repeated n_state_full times, plus a strided offset
+      // [3, 1, 3, 2, 3 + 4, 1 + 4, 3 + 4, 2 + 4, 3 + 8, 1 + 8, 3 + 8, 2 + 8]
+      // [3, 1, 3, 2, 7, 5, 7, 6, 11, 9, 11, 10]
+      std::vector<int> scatter_state(n_state * n_particles);
+#ifdef _OPENMP
+      #pragma omp parallel for schedule(static) num_threads(_n_threads)
+#endif
+      for (size_t i = 0; i < n_state; ++i) {
+        for (size_t j = 0; j < n_particles; ++j) {
+          scatter_state[i * n_particles + j] = index[j] + i * n_particles;
+        }
+      }
+      _scatter_index.setArray(scatter_state);
+#ifdef __NVCC__
+      const size_t blockSize = 32;
+      const size_t blockCount = (scatter_state.size() + blockSize - 1) / blockSize;
+      device_scatter<real_t><<<blockCount, blockSize>>>(
+        _scatter_index.data(),
+        _yi.data(),
+        _yi_next.data(),
+        scatter_state.size());
+      cudaDeviceSynchronize();
+#else
+      device_scatter<real_t>(_scatter_index.data(),
+                             _yi.data(),
+                             _yi_next.data(),
+                             scatter_state.size());
+#endif
+      std::swap(_yi, _yi_next);
+    } else {
+      _stale_device = true;
+      for (size_t i = 0; i < _particles.size(); ++i) {
+        size_t j = index[i];
+        _particles[i].set_state(_particles[j]);
+      }
+      for (auto& p : _particles) {
+        p.swap();
+      }
     }
   }
 
@@ -469,7 +523,7 @@ private:
   dust::DeviceArray<char> _indexi;
   dust::DeviceArray<real_t> _yi_selected;
   dust::DeviceArray<void> _select_tmp;
-  dust::DeviceArray<int> _num_selected;
+  dust::DeviceArray<int> _num_selected, _scatter_index;
   size_t _tmp_storage_bytes;
 
   void initialise(const init_t data, const size_t step,
@@ -512,6 +566,7 @@ private:
     _yi_selected = dust::DeviceArray<real_t>(n * n_particles);
     size_t rng_len = dust::rng_state_t<real_t>::size();
     _rngi = dust::DeviceArray<uint64_t>(rng_len * n_particles);
+    _scatter_index = dust::DeviceArray<int>(n * n_particles);
 #ifdef __NVCC__
     set_cub_tmp();
 #endif

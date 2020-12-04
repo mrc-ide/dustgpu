@@ -57,6 +57,7 @@ DEVICE void update_device(size_t step,
              dust::device_rng_state_t<typename T::real_t>& rng_state,
              dust::interleaved<typename T::real_t> state_next);
 
+// __global__ for shuffling particles
 template<typename real_t>
 KERNEL void device_scatter(int* scatter_index,
                            real_t* state,
@@ -67,10 +68,12 @@ KERNEL void device_scatter(int* scatter_index,
   if (i < state_size) {
 #else
   for (size_t i = 0; i < state_size; ++i) {
+#endif
     scatter_state[i] = state[scatter_index[i]];
   }
 }
 
+// __global__ for running the model
 template <typename real_t, typename T>
 KERNEL void run_particles(size_t step_from, size_t step_to, size_t n_particles,
                           real_t* state,
@@ -402,7 +405,6 @@ public:
       // e.g. 4 particles with 3 states ABC stored on device as
       // [1_A, 2_A, 3_A, 4_A, 1_B, 2_B, 3_B, 4_B, 1_C, 2_C, 3_C, 4_C]
       // e.g. index [3, 1, 3, 2] with would be
-      // [3_A, 3_B, 3_C, 1_A, 1_B, 1_C, 3_A, 3_B, 3_C, 2_A, 2_B, 2_C] not interleaved
       // [3_A, 1_A, 3_A, 2_A, 3_B, 1_B, 3_B, 2_B, 3_C, 1_C, 3_C, 2_C] interleaved
       // i.e. input repeated n_state_full times, plus a strided offset
       // [3, 1, 3, 2, 3 + 4, 1 + 4, 3 + 4, 2 + 4, 3 + 8, 1 + 8, 3 + 8, 2 + 8]
@@ -635,8 +637,8 @@ private:
     std::vector<char> bool_idx(n_state_full() * n_particles, 0);
     // e.g. 4 particles with 3 states ABC stored on device as
     // [1_A, 2_A, 3_A, 4_A, 1_B, 2_B, 3_B, 4_B, 1_C, 2_C, 3_C, 4_C]
-    // e.g. bool index [1, 3] would be
-    // [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1] interleaved
+    // e.g. index [1, 3] would be
+    // [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1] bool index on interleaved state
     // i.e. initialise to zero and copy 1 np times, at each offset given in index
     for (auto idx_pos = _index.cbegin(); idx_pos != _index.cend(); idx_pos++) {
       std::fill_n(bool_idx.begin() + (*idx_pos * n_particles), n_particles, 1);
@@ -649,7 +651,7 @@ private:
 
 #ifdef __NVCC__
   void set_cub_tmp() {
-    // Free the array before running below
+    // Free the array before running cub function below
     _select_tmp = dust::DeviceArray<void>();
     _temp_storage_bytes = 0;
     cub::DeviceSelect::Flagged(_select_tmp.data(),

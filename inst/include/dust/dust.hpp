@@ -394,9 +394,6 @@ public:
   // like a slightly weird state update where we swap around the
   // contents of the particle state (uses the set_state() and swap()
   // methods on particles).
-
-  // CUDA: run this, or a scatter kernel, depending on which
-  // variables are stale
   void reorder(const std::vector<size_t>& index) {
     if (_stale_host) {
       size_t n_particles = _particles.size();
@@ -572,9 +569,6 @@ private:
 #endif
   }
 
-  // CUDA: eventually we need to have more refined methods here:
-  // CUDA:  in-device scatter kernel to support shuffling
-  // CUDA:  host driven scatter?
   void refresh_device() {
     if (_stale_device) {
       const size_t np = n_particles(), ny = n_state_full();
@@ -638,7 +632,12 @@ private:
   // state to pull down when requested
   void set_device_index() {
     size_t n_particles = _particles.size();
-    std::vector<char> bool_idx((n_state_full() * n_particles), 0);
+    std::vector<char> bool_idx(n_state_full() * n_particles, 0);
+    // e.g. 4 particles with 3 states ABC stored on device as
+    // [1_A, 2_A, 3_A, 4_A, 1_B, 2_B, 3_B, 4_B, 1_C, 2_C, 3_C, 4_C]
+    // e.g. bool index [1, 3] would be
+    // [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1] interleaved
+    // i.e. initialise to zero and copy 1 np times, at each offset given in index
     for (auto idx_pos = _index.cbegin(); idx_pos != _index.cend(); idx_pos++) {
       std::fill_n(bool_idx.begin() + (*idx_pos * n_particles), n_particles, 1);
     }

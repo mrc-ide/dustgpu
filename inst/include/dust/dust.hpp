@@ -326,8 +326,7 @@ public:
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
       for (size_t i = 0; i < np; ++i) {
-        size_t offset = i * index_size;
-        destride_copy(end_state.data() + offset, yi_selected, i, np);
+        destride_copy(end_state.data() + i * index_size, yi_selected, i, np);
       }
 #else
       refresh_host();
@@ -584,7 +583,7 @@ private:
   // state to pull down when requested
   void set_device_index() {
     size_t n_particles = _particles.size();
-    std::vector<char> bool_idx(n_state_full() * n_particles), 0);
+    std::vector<char> bool_idx((n_state_full() * n_particles), 0);
     for (auto idx_pos = _index.cbegin(); idx_pos != _index.cend(); idx_pos++) {
       std::fill_n(bool_idx.begin() + (*idx_pos * n_particles), n_particles, 1);
     }
@@ -606,8 +605,7 @@ private:
                                _yi_selected.data(),
                                _num_selected,
                                _yi.size());
-    // Set an array giving the size in bytes, as void as no length
-    _select_tmp = dust::DeviceArray<void>(_yi.size(), _temp_storage_bytes);
+    _select_tmp = dust::DeviceArray<void>(_temp_storage_bytes);
   }
 #endif
 };

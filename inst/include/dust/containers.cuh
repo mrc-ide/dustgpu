@@ -5,16 +5,13 @@
 #include <cstddef>
 #include <cstdlib> // malloc
 #include <cstring> // memcpy
+#include <type_traits>
 #include <vector>
 
 #include "cuda.cuh"
 
 namespace dust {
 
-// This is all host code
-// CUDA: change to cudaMalloc, cudaMemcpy
-// CUDA: Add memcpy methods to pull back to host
-// CUDA: Use cudaGetSymbolAddress() when doing the move on __host__
 template <typename T>
 class DeviceArray {
 public:
@@ -22,28 +19,17 @@ public:
   DeviceArray() : data_(nullptr), size_(0) {}
   // Constructor to allocate empty memory
   DeviceArray(const size_t size) : size_(size) {
+    // Typedef to set size to 1 byte if T = void
+    typedef std::conditional<std::is_void<T>, char, T>::type U;
 #ifdef __NVCC__
-    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
-    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(T)));
+    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(U)));
+    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(U)));
 #else
-    data_ = (T*) std::malloc(size_ * sizeof(T));
+    data_ = (T*) std::malloc(size_ * sizeof(U));
     if (!data_) {
       throw std::runtime_error("malloc failed");
     }
-    std::memset(data_, 0, size_ * sizeof(T));
-#endif
-  }
-    // Constructor to allocate size in bytes (for e.g. void type)
-  DeviceArray(const size_t size, const size_t byte_size) : size_(size) {
-#ifdef __NVCC__
-    CUDA_CALL(cudaMalloc((void**)&data_, byte_size));
-    CUDA_CALL(cudaMemset(data_, 0, byte_size));
-#else
-    data_ = (T*) std::malloc(byte_size);
-    if (!data_) {
-      throw std::runtime_error("malloc failed");
-    }
-    std::memset(data_, 0, byte_size);
+    std::memset(data_, 0, size_ * sizeof(U));
 #endif
   }
   // Constructor from vector
@@ -116,15 +102,24 @@ public:
 #endif
   }
   void getArray(std::vector<T>& dst) const {
+    if (dst.size() > _size) {
+      cpp11::stop("Tried D->H copy with device array (%i) shorter than host array (%i)\n",
+                  _size, dst.size());
+    }
 #ifdef __NVCC__
-    CUDA_CALL(cudaMemcpy(dst.data(), data_, size_ * sizeof(T),
+    CUDA_CALL(cudaMemcpy(dst.data(), data_, dst.size() * sizeof(T),
                          cudaMemcpyDefault));
 #else
-    std::memcpy(dst.data(), data_, size_ * sizeof(T));
+    std::memcpy(dst.data(), data_, dst.size() * sizeof(T));
 #endif
   }
   void setArray(const std::vector<T>& src) {
-    size_ = src.size();
+    if (src.size() > size_) {
+      cpp11::stop("Tried H->D copy with host array (%i) longer than device array (%i)\n",
+                  src.size(), size_);
+    } else {
+      size_ = src.size();
+    }
 #ifdef __NVCC__
     CUDA_CALL(cudaMemcpy(data_, src.data(), size_ * sizeof(T),
                          cudaMemcpyDefault));
@@ -143,7 +138,6 @@ private:
   size_t size_;
 };
 
-// CUDA: mark all class methods below as __device__ (maybe also __host__)
 // The class from before, which is a light wrapper around a pointer
 // This can be used within a kernel with copying memory
 // Issue is that there's no way to tell whether the data being referred to

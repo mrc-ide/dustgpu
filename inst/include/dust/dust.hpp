@@ -314,8 +314,6 @@ public:
                   _internal_int.data(), _internal_real.data(),
                   _rngi.data());
 #endif
-    set_step(step_end);
-
     // In the inner loop, the swap will keep the locally scoped interleaved variables
     // updated, but the interleaved variables passed in have not yet been updated.
     // If an even number of steps have been run state will have been swapped back into
@@ -324,6 +322,7 @@ public:
     if ((step_end - step()) % 2) {
       std::swap(_yi, _yi_next);
     }
+    set_step(step_end);
   }
 
   void state(std::vector<real_t>& end_state) {

@@ -12,6 +12,8 @@
 
 #include <dust/rng_interface.hpp>
 
+using namespace cpp11::literals;
+
 template <typename T>
 typename T::init_t dust_data(cpp11::list data);
 

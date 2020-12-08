@@ -1,6 +1,6 @@
 # -*- makefile -*-
 CXX_STD = CXX14
-OBJECTS = cpp11.o sir.o
+OBJECTS = cpp11.o dustgpu.o sir.o
 PKG_CXXFLAGS=-I../inst/include $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS=-L/usr/local/cuda-11.1/lib64 -lcudart $(SHLIB_OPENMP_CXXFLAGS)
 

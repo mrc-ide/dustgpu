@@ -183,6 +183,9 @@ public:
   size_t size() const {
     return size_;
   }
+  size_t& size() {
+    return size_;
+  }
 private:
   DeviceArray ( const DeviceArray<void> & ) = delete;
   DeviceArray ( DeviceArray<void> && ) = delete;

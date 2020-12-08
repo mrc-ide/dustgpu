@@ -210,7 +210,8 @@ public:
   typedef typename T::real_t real_t;
 
   Dust(const init_t data, const size_t step, const size_t n_particles,
-       const size_t n_threads, const std::vector<uint64_t>& seed) :
+       const size_t n_threads, const std::vector<uint64_t>& seed,
+       const int device_id) :
     _n_threads(n_threads),
     _rng(n_particles, seed),
     _stale_host(false),

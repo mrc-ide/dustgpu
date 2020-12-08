@@ -35,8 +35,7 @@ cpp11::writable::doubles_matrix create_matrix(size_t nrow, size_t ncol,
 template <typename T>
 cpp11::list dust_alloc(cpp11::list r_data, int step,
                        int n_particles, int n_threads,
-                       cpp11::sexp r_seed,
-                       int device_id) {
+                       cpp11::sexp r_seed, int device_id) {
   validate_size(step, "step");
   validate_positive(n_particles, "n_particles");
   validate_positive(n_threads, "n_threads");

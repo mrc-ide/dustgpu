@@ -173,7 +173,6 @@ inline HOST void xoshiro_long_jump(rng_state_t<T> state) {
 
 template <typename T, typename U = typename T::real_t>
 HOST U unif_rand(T& state) {
-  printf("generic host\n");
   const uint64_t value = xoshiro_next(state);
   return U(value) / U(std::numeric_limits<uint64_t>::max());
 }

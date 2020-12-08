@@ -214,8 +214,7 @@ public:
     _n_threads(n_threads),
     _rng(n_particles, seed),
     _stale_host(false),
-    _stale_device(true),
-    _tmp_storage_bytes(0) {
+    _stale_device(true) {
 #ifdef __NVCC__
     cudaProfilerStart();
 #endif
@@ -331,7 +330,7 @@ public:
 #ifdef __NVCC__
       // Run the selection and copy items back
       cub::DeviceSelect::Flagged(_select_tmp.data(),
-                                 _tmp_storage_bytes,
+                                 _select_tmp.size(),
                                  _yi.data(),
                                  _indexi.data(),
                                  _yi_selected.data(),
@@ -525,7 +524,6 @@ private:
   dust::DeviceArray<real_t> _yi_selected;
   dust::DeviceArray<void> _select_tmp;
   dust::DeviceArray<int> _num_selected, _scatter_index;
-  size_t _tmp_storage_bytes;
 
   void initialise(const init_t data, const size_t step,
                   const size_t n_particles) {
@@ -655,16 +653,16 @@ private:
 #ifdef __NVCC__
   void set_cub_tmp() {
     // Free the array before running cub function below
-    _select_tmp = dust::DeviceArray<void>();
-    _tmp_storage_bytes = 0;
+    size_t tmp_bytes = 0;
+    _select_tmp.set_size(tmp_bytes);
     cub::DeviceSelect::Flagged(_select_tmp.data(),
-                               _tmp_storage_bytes,
+                               tmp_bytes,
                                _yi.data(),
                                _indexi.data(),
                                _yi_selected.data(),
                                _num_selected.data(),
                                _yi.size());
-    _select_tmp = dust::DeviceArray<void>(_tmp_storage_bytes);
+    _select_tmp.set_size(tmp_bytes);
   }
 #endif
 };

@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdlib> // malloc
 #include <cstring> // memcpy
-#include <type_traits>
 #include <vector>
 
 #include "cuda.cuh"
@@ -19,17 +18,15 @@ public:
   DeviceArray() : data_(nullptr), size_(0) {}
   // Constructor to allocate empty memory
   DeviceArray(const size_t size) : size_(size) {
-    // Typedef to set size to 1 byte if T = void
-    typedef std::conditional<std::is_void<T>, char, typename T>::type U;
 #ifdef __NVCC__
-    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(U)));
-    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(U)));
+    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
+    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(T)));
 #else
-    data_ = (T*) std::malloc(size_ * sizeof(U));
+    data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
-      throw std::runtime_error("malloc failed");
+      cpp11::stop("malloc failed");
     }
-    std::memset(data_, 0, size_ * sizeof(U));
+    std::memset(data_, 0, size_ * sizeof(T));
 #endif
   }
   // Constructor from vector
@@ -42,7 +39,7 @@ public:
 #else
     data_ = (T*) std::malloc(size_ * sizeof(T));
     if (!data_) {
-      throw std::runtime_error("malloc failed");
+      cpp11::stop("malloc failed");
     }
     std::memcpy(data_, data.data(), size_ * sizeof(T));
 #endif
@@ -104,7 +101,7 @@ public:
   void getArray(std::vector<T>& dst) const {
     if (dst.size() > size_) {
       cpp11::stop("Tried D->H copy with device array (%i) shorter than host array (%i)\n",
-                  _size, dst.size());
+                  size_, dst.size());
     }
 #ifdef __NVCC__
     CUDA_CALL(cudaMemcpy(dst.data(), data_, dst.size() * sizeof(T),
@@ -135,6 +132,62 @@ public:
   }
 private:
   T* data_;
+  size_t size_;
+};
+
+template <>
+class DeviceArray<void> {
+public:
+  // Default constructor
+  DeviceArray() : data_(nullptr), size_(0) {}
+  // Constructor to allocate empty memory
+  DeviceArray(const size_t size) : size_(size) {
+    if (size_ > 0) {
+#ifdef __NVCC__
+      CUDA_CALL(cudaMalloc((void**)&data_, size_));
+#else
+      data_ = (void*) std::malloc(size_);
+      if (!data_) {
+        cpp11::stop("malloc failed");
+      }
+#endif
+    }
+  }
+  ~DeviceArray() {
+#ifdef __NVCC__
+    CUDA_CALL(cudaFree(data_));
+#else
+    std::free(data_);
+#endif
+  }
+  void set_size(size_t size) {
+    size_ = size;
+#ifdef __NVCC__
+    CUDA_CALL(cudaFree(data_));
+    if (size_ > 0) {
+      CUDA_CALL(cudaMalloc((void**)&data_, size_));
+    }
+#else
+    std::free(data_);
+    if (size_ > 0) {
+      data_ = (void*) std::malloc(size_);
+      if (!data_) {
+        cpp11::stop("malloc failed");
+      }
+    }
+#endif
+  }
+  void* data() {
+    return data_;
+  }
+  size_t size() const {
+    return size_;
+  }
+private:
+  DeviceArray ( const DeviceArray<void> & ) = delete;
+  DeviceArray ( DeviceArray<void> && ) = delete;
+
+  void* data_;
   size_t size_;
 };
 

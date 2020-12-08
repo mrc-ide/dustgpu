@@ -104,15 +104,15 @@ std::vector<int> dust_sir_internal_int(SEXP ptr) {
 }
 
 [[cpp11::register]]
+cpp11::list dust_sir_device_info() {
+  return dust_device_info<sir>();
+}
+
+[[cpp11::register]]
 bool dust_sir_has_cuda() {
 #ifdef __NVCC__
   return true;
 #else
   return false;
 #endif
-}
-
-[[cpp11::register]]
-cpp11::list dust_sir_device_info() {
-  return dust_device_info<sir>();
 }

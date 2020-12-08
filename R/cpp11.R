@@ -4,8 +4,8 @@ cpp_add <- function(a, b) {
   .Call("_dustgpu_cpp_add", a, b, PACKAGE = "dustgpu")
 }
 
-dust_sir_alloc <- function(r_data, step, n_particles, n_threads, r_seed) {
-  .Call("_dustgpu_dust_sir_alloc", r_data, step, n_particles, n_threads, r_seed, PACKAGE = "dustgpu")
+dust_sir_alloc <- function(r_data, step, n_particles, n_threads, r_seed, device_id) {
+  .Call("_dustgpu_dust_sir_alloc", r_data, step, n_particles, n_threads, r_seed, device_id, PACKAGE = "dustgpu")
 }
 
 dust_sir_run <- function(ptr, step_end) {
@@ -70,4 +70,12 @@ dust_sir_internal_real <- function(ptr) {
 
 dust_sir_internal_int <- function(ptr) {
   .Call("_dustgpu_dust_sir_internal_int", ptr, PACKAGE = "dustgpu")
+}
+
+dust_sir_device_info <- function() {
+  .Call("_dustgpu_dust_sir_device_info", PACKAGE = "dustgpu")
+}
+
+dust_sir_has_cuda <- function() {
+  .Call("_dustgpu_dust_sir_has_cuda", PACKAGE = "dustgpu")
 }

@@ -507,7 +507,7 @@ public:
   }
 
   int device_id() const {
-    return device_id;
+    return _device_id;
   }
 
 private:

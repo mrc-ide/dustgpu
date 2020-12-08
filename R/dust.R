@@ -120,11 +120,11 @@ sir <- R6::R6Class(
 
     internal_real = function() {
       dust_sir_internal_real(private$ptr_)
-    }
+    },
 
     has_cuda = function() {
       dust_sir_has_cuda()
-    }
+    },
 
     available_devices = function() {
       dust_sir_device_info()

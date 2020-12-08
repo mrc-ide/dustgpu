@@ -20,7 +20,7 @@ public:
   // Constructor to allocate empty memory
   DeviceArray(const size_t size) : size_(size) {
     // Typedef to set size to 1 byte if T = void
-    typedef std::conditional<std::is_void<T>, char, T>::type U;
+    typedef std::conditional<std::is_void<T>, char, typename T>::type U;
 #ifdef __NVCC__
     CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(U)));
     CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(U)));
@@ -102,7 +102,7 @@ public:
 #endif
   }
   void getArray(std::vector<T>& dst) const {
-    if (dst.size() > _size) {
+    if (dst.size() > size_) {
       cpp11::stop("Tried D->H copy with device array (%i) shorter than host array (%i)\n",
                   _size, dst.size());
     }

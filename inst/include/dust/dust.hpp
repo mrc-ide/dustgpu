@@ -16,7 +16,8 @@
 // but as not passed by ref will update a copy not the vector itself
 template <typename T, typename U, typename Enable = void>
 size_t destride_copy(T dest, U src, size_t at, size_t stride) {
-  for (size_t i = 0; at < src.size(); ++i, at += stride) {
+  size_t i;
+  for (i = 0; at < src.size(); ++i, at += stride) {
     dest[i] = src[at];
   }
   return i;
@@ -324,20 +325,20 @@ public:
   }
 
   void state(std::vector<real_t>& end_state) {
-      size_t np = particles.size();
+      size_t np = _particles.size();
       size_t index_size = _index.size();
     if (_stale_host) {
 #ifdef __NVCC__
       // Run the selection and copy items back
       cub::DeviceSelect::Flagged(_select_tmp.data(),
-                                 _temp_storage_bytes,
+                                 _tmp_storage_bytes,
                                  _yi.data(),
                                  _indexi.data(),
                                  _yi_selected.data(),
-                                 _num_selected,
+                                 _num_selected.data(),
                                  _yi.size());
       std::vector<real_t> yi_selected(np * index_size);
-      _yi_selected.getArray(yi_selected)
+      _yi_selected.getArray(yi_selected);
 
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
@@ -655,15 +656,15 @@ private:
   void set_cub_tmp() {
     // Free the array before running cub function below
     _select_tmp = dust::DeviceArray<void>();
-    _temp_storage_bytes = 0;
+    _tmp_storage_bytes = 0;
     cub::DeviceSelect::Flagged(_select_tmp.data(),
-                               _temp_storage_bytes,
+                               _tmp_storage_bytes,
                                _yi.data(),
                                _indexi.data(),
                                _yi_selected.data(),
                                _num_selected.data(),
                                _yi.size());
-    _select_tmp = dust::DeviceArray<void>(_temp_storage_bytes);
+    _select_tmp = dust::DeviceArray<void>(_tmp_storage_bytes);
   }
 #endif
 };

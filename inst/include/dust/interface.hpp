@@ -301,7 +301,7 @@ std::vector<int> dust_internal_int(SEXP ptr) {
 }
 
 template <typename T>
-SEXP dust_device_info() {
+cpp11::list dust_device_info() {
   std::vector<int> ids = {NA_INTEGER};
   std::vector<std::string> names = {NA_STRING};
   std::vector<size_t> memory = {NA_INTEGER};

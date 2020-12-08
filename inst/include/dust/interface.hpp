@@ -301,6 +301,34 @@ std::vector<int> dust_internal_int(SEXP ptr) {
   return obj->internal_int();
 }
 
+template <typename T>
+SEXP dust_device_info() {
+  std::vector<int> ids = {NA_INTEGER};
+  std::vector<std::string> names = {NA_STRING};
+  std::vector<size_t> memory = {NA_INTEGER};
+#ifdef __NVCC__
+  int device_count;
+  CUDA_CALL(cudaGetDeviceCount(&device_count));
+  if (device_count > 0) {
+    ids.resize(device_count);
+    names.resize(device_count);
+    memory.resize(device_count);
+    for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp properties;
+      CUDA_CALL(cudaGetDeviceProperties(&properties, i));
+      ids[i] = i;
+      names[i] = properties.name;
+      memory[i] = properties.totalGlobalMem;
+    }
+  }
+#endif
+  return cpp11::writable::list({
+    "ID"_nm = ids,
+    "name"_nm = names,
+    "memory"_nm = memory
+  });
+}
+
 // Trivial default implementation of a method for getting back
 // arbitrary information from the object.
 template <typename T>

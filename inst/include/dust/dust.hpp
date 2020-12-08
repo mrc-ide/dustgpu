@@ -505,6 +505,10 @@ public:
     return(ret);
   }
 
+  int device_id() const {
+    return device_id;
+  }
+
 private:
   // delete move and copy to avoid accidentally using them
   Dust ( const Dust & ) = delete;

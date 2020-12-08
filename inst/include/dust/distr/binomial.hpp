@@ -36,7 +36,7 @@ inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
                                                         int n,
                                                         typename T::real_t p) {
   using real_t = typename T::real_t;
-  real_t u = dust::unif_rand<T>(rng_state);
+  real_t u = dust::unif_rand(rng_state);
 
   // This is equivalent to qbinom(u, n, p)
   const real_t q = 1 - p;
@@ -88,8 +88,8 @@ inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
 
   double draw;
   while (true) {
-    double u = dust::unif_rand<T, double>(rng_state);
-    double v = dust::unif_rand<T, double>(rng_state);
+    double u = dust::unif_rand(rng_state);
+    double v = dust::unif_rand(rng_state);
     u = u - 0.5;
     double us = 0.5 - std::fabs(u);
     double k = std::floor((2 * a / us + b) * u + c);

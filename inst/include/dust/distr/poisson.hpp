@@ -28,7 +28,7 @@ HOSTDEVICE int rpois(T& rng_state,
     // Keep trying until we surpass e^(-rate). This will take
     // expected time proportional to rate.
     while (true) {
-      real_t u = dust::unif_rand<T>(rng_state);
+      real_t u = dust::unif_rand(rng_state);
       prod = prod * u;
       if (prod <= exp_neg_rate &&
           x <= std::numeric_limits<int>::max()) {
@@ -73,9 +73,9 @@ HOSTDEVICE int rpois(T& rng_state,
     const real_t inv_alpha = 1.1239 + 1.1328 / (b - 3.4);
 
     while (true) {
-      real_t u = dust::unif_rand<T>(rng_state);
+      real_t u = dust::unif_rand(rng_state);
       u -= 0.5;
-      real_t v = dust::unif_rand<T>(rng_state);
+      real_t v = dust::unif_rand(rng_state);
 
       real_t u_shifted = 0.5 - std::fabs(u);
       int k = floor((2 * a / u_shifted + b) * u + lambda + 0.43);

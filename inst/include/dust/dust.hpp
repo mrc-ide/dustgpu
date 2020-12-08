@@ -267,8 +267,8 @@ public:
     }
   }
 
-  // TODO: what to do with this one? Currently calls Dust::run(),
-  // but could also support run_device. Leaving as CPU only for now
+  // Host run only, as device run assumes all particles are running forward
+  // the same number of steps
   void set_step(const std::vector<size_t>& step) {
     const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
@@ -349,6 +349,7 @@ public:
       refresh_host();
 #endif
     }
+    // This would be better as an else, but the ifdefs are clearer this way
     if (!_stale_host) {
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
@@ -540,7 +541,8 @@ private:
     for (size_t i = 0; i < n; ++i) {
       _index.push_back(i);
     }
-    std::vector<char> device_index(n * n_particles, 1); // std::vector<bool> is specialised and cannot be used here
+    // std::vector<bool> is specialised and cannot be used here
+    std::vector<char> device_index(n * n_particles, 1);
     _indexi = dust::DeviceArray<char>(device_index);
     _num_selected = dust::DeviceArray<int>(1);
 
@@ -659,7 +661,7 @@ private:
                                _yi.data(),
                                _indexi.data(),
                                _yi_selected.data(),
-                               _num_selected,
+                               _num_selected.data(),
                                _yi.size());
     _select_tmp = dust::DeviceArray<void>(_temp_storage_bytes);
   }

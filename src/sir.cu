@@ -421,11 +421,12 @@ DEVICE real_t odin_sum2(const dust::interleaved<real_t> x, int_t from_i, int_t t
 // We're doing this as a free function as that's how we decided that
 // it might be easiest to get things working with
 template <>
-DEVICE void update_device<sir>(size_t step, const dust::interleaved<sir::real_t> state,
-             dust::interleaved<int> internal_int,
-             dust::interleaved<sir::real_t> internal_real,
-             dust::device_rng_state_t<sir::real_t>& rng_state,
-             dust::interleaved<sir::real_t> state_next) {
+DEVICE void update_device<sir>(size_t step,
+                               const dust::interleaved<sir::real_t> state,
+                               dust::interleaved<int> internal_int,
+                               dust::interleaved<sir::real_t> internal_real,
+                               dust::device_rng_state_t<sir::real_t>& rng_state,
+                               dust::interleaved<sir::real_t> state_next) {
   typedef sir::real_t real_t;
   typedef int int_t;
   // Unpack the integer vector

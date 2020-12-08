@@ -304,29 +304,38 @@ std::vector<int> dust_internal_int(SEXP ptr) {
 
 template <typename T>
 cpp11::list dust_device_info() {
-  std::vector<int> ids = {NA_INTEGER};
-  std::vector<std::string> names = {NA_STRING};
-  std::vector<size_t> memory = {NA_INTEGER};
 #ifdef __NVCC__
   int device_count;
   CUDA_CALL(cudaGetDeviceCount(&device_count));
+  cpp11::writable::integers ids(device_count);
+  cpp11::writable::doubles memory(device_count);
+  cpp11::writable::strings names(device_count);
+
   if (device_count > 0) {
-    ids.resize(device_count);
-    names.resize(device_count);
-    memory.resize(device_count);
     for (int i = 0; i < device_count; ++i) {
       cudaDeviceProp properties;
       CUDA_CALL(cudaGetDeviceProperties(&properties, i));
       ids[i] = i;
       names[i] = properties.name;
-      memory[i] = properties.totalGlobalMem;
+      // If I use long long int I get 24Gb -> -322633728
+      // Not sure if cpp11 int is 32-bit only?
+      // Using rounding below for now
+      memory[i] = static_cast<double>(properties.totalGlobalMem) / (1024 * 1024);
     }
+  } else {
+    ids[0] = NA_INTEGER;
+    memory[0] = NA_REAL;
+    names[0] = NA_STRING;
   }
+#else
+  cpp11::writable::integers ids = {NA_INTEGER};
+  cpp11::writable::doubles memory = {NA_INTEGER};
+  cpp11::writable::strings names = {NA_STRING};
 #endif
   return cpp11::writable::list({
     "ID"_nm = ids,
     "name"_nm = names,
-    "memory"_nm = memory
+    "memory_MB"_nm = memory
   });
 }
 

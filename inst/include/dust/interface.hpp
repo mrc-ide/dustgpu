@@ -35,15 +35,16 @@ cpp11::writable::doubles_matrix create_matrix(size_t nrow, size_t ncol,
 template <typename T>
 cpp11::list dust_alloc(cpp11::list r_data, int step,
                        int n_particles, int n_threads,
-                       cpp11::sexp r_seed) {
+                       cpp11::sexp r_seed, int device_id) {
   validate_size(step, "step");
   validate_positive(n_particles, "n_particles");
   validate_positive(n_threads, "n_threads");
+  validate_size(device_id, "device_id");
   std::vector<uint64_t> seed = as_rng_seed<typename T::real_t>(r_seed);
 
   typename T::init_t data = dust_data<T>(r_data);
 
-  Dust<T> *d = new Dust<T>(data, step, n_particles, n_threads, seed);
+  Dust<T> *d = new Dust<T>(data, step, n_particles, n_threads, seed, device_id);
   cpp11::external_pointer<Dust<T>> ptr(d, true, false);
   cpp11::sexp info = dust_info<T>(data);
 
@@ -297,6 +298,34 @@ template <typename T>
 std::vector<int> dust_internal_int(SEXP ptr) {
   Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
   return obj->internal_int();
+}
+
+template <typename T>
+cpp11::list dust_device_info() {
+  std::vector<int> ids = {NA_INTEGER};
+  std::vector<std::string> names = {NA_STRING};
+  std::vector<size_t> memory = {NA_INTEGER};
+#ifdef __NVCC__
+  int device_count;
+  CUDA_CALL(cudaGetDeviceCount(&device_count));
+  if (device_count > 0) {
+    ids.resize(device_count);
+    names.resize(device_count);
+    memory.resize(device_count);
+    for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp properties;
+      CUDA_CALL(cudaGetDeviceProperties(&properties, i));
+      ids[i] = i;
+      names[i] = properties.name;
+      memory[i] = properties.totalGlobalMem;
+    }
+  }
+#endif
+  return cpp11::writable::list({
+    "ID"_nm = ids,
+    "name"_nm = names,
+    "memory"_nm = memory
+  });
 }
 
 // Trivial default implementation of a method for getting back

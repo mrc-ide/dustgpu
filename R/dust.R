@@ -8,6 +8,7 @@ sir <- R6::R6Class(
     index_ = NULL,
     info_ = NULL,
     n_threads_ = NULL,
+    device_id_ = NULL,
     ptr_ = NULL,
 
     simulate = function(steps, data, state, index = NULL,
@@ -18,11 +19,12 @@ sir <- R6::R6Class(
 
   public = list(
     initialize = function(data, step, n_particles, n_threads = 1L,
-                          seed = NULL) {
+                          seed = NULL, device_id = 0) {
       res <- dust_sir_alloc(data, step, n_particles,
-                        n_threads, seed)
+                        n_threads, seed, device_id)
       private$data_ <- data
       private$n_threads_ <- n_threads
+      private$device_id_ <- device_id
       private$ptr_ <- res[[1L]]
       private$info_ <- res[[2L]]
     },

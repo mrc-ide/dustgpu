@@ -5,8 +5,8 @@
 
 [[cpp11::register]]
 SEXP dust_sir_alloc(cpp11::list r_data, size_t step, size_t n_particles,
-                size_t n_threads, cpp11::sexp r_seed) {
-  return dust_alloc<sir>(r_data, step, n_particles, n_threads, r_seed);
+                size_t n_threads, cpp11::sexp r_seed, int device_id) {
+  return dust_alloc<sir>(r_data, step, n_particles, n_threads, r_seed, device_id);
 }
 
 [[cpp11::register]]
@@ -101,6 +101,11 @@ std::vector<double> dust_sir_internal_real(SEXP ptr) {
 [[cpp11::register]]
 std::vector<int> dust_sir_internal_int(SEXP ptr) {
   return dust_internal_int<sir>(ptr);
+}
+
+[[cpp11::register]]
+cpp11::list dust_sir_device_info() {
+  return dust_device_info<sir>();
 }
 
 [[cpp11::register]]

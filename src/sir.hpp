@@ -5,8 +5,8 @@
 
 [[cpp11::register]]
 SEXP dust_sir_alloc(cpp11::list r_data, size_t step, size_t n_particles,
-                size_t n_threads, cpp11::sexp r_seed) {
-  return dust_alloc<sir>(r_data, step, n_particles, n_threads, r_seed);
+                size_t n_threads, cpp11::sexp r_seed, int device_id) {
+  return dust_alloc<sir>(r_data, step, n_particles, n_threads, r_seed, device_id);
 }
 
 [[cpp11::register]]
@@ -110,4 +110,32 @@ bool dust_sir_has_cuda() {
 #else
   return false;
 #endif
+}
+
+[[cpp11::register]]
+cpp11::list dust_sir_device_info() {
+  std::vector<int> ids = {NA_INTEGER};
+  std::vector<std::string> names = {NA_STRING};
+  std::vector<size_t> memory = {NA_INTEGER};
+#ifdef __NVCC__
+  int device_count;
+  CUDA_CALL(cudaGetDeviceCount(&device_count));
+  if (device_count > 0) {
+    ids.resize(device_count);
+    names.resize(device_count);
+    memory.resize(device_count);
+    for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp properties;
+      CUDA_CALL(cudaGetDeviceProperties(&properties, i));
+      ids[i] = i;
+      names[i] = properties.name;
+      memory[i] = properties.totalGlobalMem;
+    }
+  }
+#endif
+  return cpp11::writable::list({
+    "ID"_nm = ids,
+    "name"_nm = names,
+    "memory"_nm = memory
+  });
 }

@@ -35,15 +35,17 @@ cpp11::writable::doubles_matrix create_matrix(size_t nrow, size_t ncol,
 template <typename T>
 cpp11::list dust_alloc(cpp11::list r_data, int step,
                        int n_particles, int n_threads,
-                       cpp11::sexp r_seed) {
+                       cpp11::sexp r_seed,
+                       int device_id) {
   validate_size(step, "step");
   validate_positive(n_particles, "n_particles");
   validate_positive(n_threads, "n_threads");
+  validate_size(device_id, "device_id");
   std::vector<uint64_t> seed = as_rng_seed<typename T::real_t>(r_seed);
 
   typename T::init_t data = dust_data<T>(r_data);
 
-  Dust<T> *d = new Dust<T>(data, step, n_particles, n_threads, seed);
+  Dust<T> *d = new Dust<T>(data, step, n_particles, n_threads, seed, device_id);
   cpp11::external_pointer<Dust<T>> ptr(d, true, false);
   cpp11::sexp info = dust_info<T>(data);
 

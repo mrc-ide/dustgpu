@@ -214,8 +214,10 @@ public:
     _n_threads(n_threads),
     _rng(n_particles, seed),
     _stale_host(false),
-    _stale_device(true) {
+    _stale_device(true),
+    _device_id(device_id) {
 #ifdef __NVCC__
+    CUDA_CALL(cudaSetDevice(_device_id));
     cudaProfilerStart();
 #endif
     initialise(data, step, n_particles);
@@ -514,6 +516,7 @@ private:
   std::vector<Particle<T>> _particles;
 
   // New things for device support
+  int _device_id;
   bool _stale_host, _stale_device;
   dust::DeviceArray<real_t> _yi, _yi_next, _internal_real;
   dust::DeviceArray<int> _internal_int;

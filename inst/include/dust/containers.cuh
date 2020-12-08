@@ -11,6 +11,9 @@
 
 namespace dust {
 
+// This manages memory on the device, allocating, copying and freeing
+// Include as a class member, use getArray and setArray to copy between
+// host and device.
 template <typename T>
 class DeviceArray {
 public:
@@ -135,6 +138,8 @@ private:
   size_t size_;
 };
 
+// Specialisation of the above for void* memory needed by some cub functions
+// Construct once and use set_size() to modify
 template <>
 class DeviceArray<void> {
 public:

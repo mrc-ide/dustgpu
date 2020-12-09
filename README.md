@@ -2,37 +2,33 @@
 
 Not a real package, just here for our next generation of dust + gpu support.
 
-## Basic approach
+## Profiling
 
-The basic problem is that we want to keep a bunch of copies of state handy, and it's a bit tedious. We can divide the required state into a few basic bits:
+Setup (once):
 
-* `y`: model state, minimally an array of length `n_state * n_particles`, but we could model this a number of ways
-* `y_next`: the next model state, same shape as `y`
-* `rng_state`: the random number state - `4 * uint64_t * n_particles`
-* `model_internals`: this is not really in dust at the moment, but comes along with the definition of a model. Rather than storing a class of nice variables as we currently do we could store a massive block of memory and index into that with an offset - this will have size `len * n_particles` where `len` is something unknown as of yet. We need to decide if we'd be storing things as doubles or a block of memory and casting
+- Ensure in src/Makevars `-pg --generate-line-info` is set in
+  `NVCC_FLAGS`.
+- Install R (>=v3.6)
+- Install R packages by launching `/usr/bin/R` and running
+  `install.packages(c("devtools", "socialmixr"))`
 
-Then we need to store all of that on the GPU too, so we'll get an extra copy. In the existing code this is stored as things like `_y_device`, and these are created with `cudaMalloc`, filled with `cudaMemcpy` and freed with `cudaFree`.
+To run nsight systems profile:
+```
+nsys profile -o sirs_timeline_<commit> --trace cuda,osrt,openmp -c cudaProfilerApi --force-overwrite true /usr/bin/Rscript run_dust_nsys.R
+```
+This runs a full example where the kernels are called in sequence in
+a loop. The profile runs from when the model object is created (`dustgpu::sir$new`)
+to when its destructor is called (end of file).
 
-The interface so far is that we have a Particle class that holds gives us some level of abstraction - we can do that with this new version if it takes 4 pointers into these object. However, we need the underlying model object to be a bit different as I'm assuming that we can pass in an object with temporary storage and that's just not going to work.
+To run nsight compute profile:
+```
+ncu -o sirs_profile_<commit> --set full --target-processes all /usr/bin/Rscript run_dust.R
+```
+This is the same as above, but only a single loop iteration is run, so
+each kernel is called once.
 
-All these blocks of memory should be interleaved together, as we believe that will lead to better performance.
-
-## Interface issues
-
-We'll have *every* model contain a CPU portion - that will take care of the parameter wrangling etc. But some models can then be made GPU aware, so we can offload their calculation onto the GPU if we want to. This means that we can keep dust relatively unchanged and continue to use nice stl types for most things.
-
-This also massively simplifies the packaging as CPU and GPU versions can coexist in the same package easily, and we don't have to choose what we're generating.
-
-## What is needed
-
-Once a model is initialised on the CPU we need to get it to tell us:
-
-* How long is `y` (and `y_state`)
-* How long is `model_internals` if it was arranged as an array of `real_t`
-* Convert from an initialised model to an interleaved array of data for each of these types
-* For odin.dust, a version of the `update` method that works with this data type
-
-Probably the safest thing to do is to save internal state as vectors of integers and reals rather than have them share one structure.
+NB: The R files will compile the code for you if it has changed, as long as `nvcc` is on
+the path.
 
 ## The example
 
@@ -43,3 +39,5 @@ Because we need to make changes to dust's include files, I've duplicated them in
 I'm then working against this commit to add the new features.
 
 At `04fc091` we can extract the strided model internal state (this is exposed out as far as the R inteface but there's no need to do that at all).
+
+Added R->S transitions by hand in `05b204`, with fixed rate 0.1.

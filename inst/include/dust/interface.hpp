@@ -307,9 +307,11 @@ cpp11::list dust_device_info() {
 #ifdef __NVCC__
   int device_count;
   CUDA_CALL(cudaGetDeviceCount(&device_count));
-  cpp11::writable::integers ids(device_count);
-  cpp11::writable::doubles memory(device_count);
-  cpp11::writable::strings names(device_count);
+
+  int alloc_size = device_count > 0 ? device_count : 1;
+  cpp11::writable::integers ids(alloc_size);
+  cpp11::writable::doubles memory(alloc_size);
+  cpp11::writable::strings names(alloc_size);
 
   if (device_count > 0) {
     for (int i = 0; i < device_count; ++i) {
@@ -317,9 +319,6 @@ cpp11::list dust_device_info() {
       CUDA_CALL(cudaGetDeviceProperties(&properties, i));
       ids[i] = i;
       names[i] = properties.name;
-      // If I use long long int I get 24Gb -> -322633728
-      // Not sure if cpp11 int is 32-bit only?
-      // Using rounding below for now
       memory[i] = static_cast<double>(properties.totalGlobalMem) / (1024 * 1024);
     }
   } else {

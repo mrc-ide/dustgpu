@@ -171,6 +171,8 @@ public:
     CUDA_CALL(cudaFree(data_));
     if (size_ > 0) {
       CUDA_CALL(cudaMalloc((void**)&data_, size_));
+    } else {
+      data_ = nullptr;
     }
 #else
     std::free(data_);
@@ -179,6 +181,8 @@ public:
       if (!data_) {
         cpp11::stop("malloc failed");
       }
+    } else {
+      data_ = nullptr;
     }
 #endif
   }

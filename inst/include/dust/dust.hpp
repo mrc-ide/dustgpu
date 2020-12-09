@@ -10,12 +10,12 @@
 #include <omp.h>
 #endif
 
-// NB: these functions expect pointers for dest and src,
+// NB: these functions expect pointer for dest and ref for src,
 // so if applying to a vector use .data().
 // If the vector is passed in this will still compile due to the template,
 // but as not passed by ref will update a copy not the vector itself
 template <typename T, typename U, typename Enable = void>
-size_t destride_copy(T dest, U src, size_t at, size_t stride) {
+size_t destride_copy(T dest, U& src, size_t at, size_t stride) {
   size_t i;
   for (i = 0; at < src.size(); ++i, at += stride) {
     dest[i] = src[at];
@@ -24,7 +24,7 @@ size_t destride_copy(T dest, U src, size_t at, size_t stride) {
 }
 
 template <typename T, typename U, typename Enable = void>
-size_t stride_copy(T dest, U src, size_t at, size_t stride) {
+size_t stride_copy(T dest, U& src, size_t at, size_t stride) {
   for (size_t i = 0; i < src.size(); ++i, at += stride) {
     dest[at] = src[i];
   }
@@ -423,7 +423,7 @@ public:
       }
       _scatter_index.setArray(scatter_state);
 #ifdef __NVCC__
-      const size_t blockSize = 32;
+      const size_t blockSize = 128;
       const size_t blockCount = (scatter_state.size() + blockSize - 1) / blockSize;
       device_scatter<real_t><<<blockCount, blockSize>>>(
         _scatter_index.data(),

@@ -12,10 +12,6 @@
 namespace dust {
 
 // This is just a container class for state
-// TODO: this needs to support being either interleaved or deinterleaved
-// depending on whether GPU or CPU
-// The best way of doing this may be to leave deinterleaved on host,
-// then do the same as with state when copying to and from the device
 template <typename T>
 class pRNG {
 public:

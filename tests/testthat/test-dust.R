@@ -47,7 +47,7 @@ test_that("device run gives the same results", {
                                   seed = 1L)
 
   h_results <- sir_model_h$run(n_steps)
-  d_results <- sir_model_d$run(n_steps)
+  d_results <- sir_model_d$run_device(n_steps)
   expect_identical(h_results, d_results)
 
   h_rng <- sir_model_h$rng_state()

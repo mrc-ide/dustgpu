@@ -30,6 +30,14 @@ each kernel is called once.
 NB: The R files will compile the code for you if it has changed, as long as `nvcc` is on
 the path.
 
+## Testing
+
+Launch an R session, and from the R command line run:
+```
+pkgload::load_all()
+devtools::test()
+```
+
 ## The example
 
 There is an example `inst/odin/sir.R` from which we generated `inst/dust/sir.cpp` and `src/sir.cpp` (`315d16e`)

@@ -18,7 +18,7 @@ test_that("device run gives the same results", {
   transmission <- contact$matrix
 
   N_age <- length(age.limits)
-  n_particles <- 100000L
+  n_particles <- 10L
   dt <- 0.25
   n_steps <- 20L
 
@@ -51,6 +51,6 @@ test_that("device run gives the same results", {
   expect_identical(h_results, d_results)
 
   h_rng <- sir_model_h$rng_state()
-  d_rng <- sir_model_h$rng_state()
+  d_rng <- sir_model_d$rng_state()
   expect_identical(h_rng, d_rng)
 })

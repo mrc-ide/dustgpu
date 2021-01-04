@@ -18,7 +18,7 @@ DEVICE real_t odin_sum2(const dust::interleaved<real_t> x, int_t from_i, int_t t
 class sir {
 public:
   typedef int int_t;
-  typedef double real_t;
+  typedef float real_t;
   struct init_t {
     real_t beta;
     int_t dim_I;

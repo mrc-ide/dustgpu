@@ -3,6 +3,26 @@
 
 #include <cmath>
 
+#ifdef __NVCC__
+__constant__ float constkTailValues[] =
+  {0.08106146679532733f,
+   0.041340695955409457f,
+   0.027677925684998161f,
+   0.020790672103765173f,
+   0.016644691189821259f,
+   0.013876128823071099f,
+   0.011896709945892425f,
+   0.010411265261970115f,
+   0.009255462182705898f,
+   0.0083305634333594725f,
+   0.0075736754879489609f,
+   0.0069428401072073598f,
+   0.006408994188007f,
+   0.0059513701127578145f,
+   0.0055547335519605667f,
+   0.0052076559196052585f};
+#endif
+
 namespace dust {
 namespace distr {
 
@@ -53,17 +73,24 @@ inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
   return k;
 }
 
-inline HOSTDEVICE double stirling_approx_tail(double k) {
-  static double kTailValues[] = {0.0810614667953272,  0.0413406959554092,
+template <typename real_t>
+inline HOSTDEVICE real_t stirling_approx_tail(real_t k) {
+#ifndef __CUDA_ARCH__
+  static real_t kTailValues[] = {0.0810614667953272,  0.0413406959554092,
                                  0.0276779256849983,  0.02079067210376509,
                                  0.0166446911898211,  0.0138761288230707,
                                  0.0118967099458917,  0.0104112652619720,
                                  0.00925546218271273, 0.00833056343336287};
-  double tail;
-  if (k <= 9) {
+#endif
+  real_t tail;
+  if (k <= 15) {
+#ifndef __CUDA_ARCH__
     tail = kTailValues[static_cast<int>(k)];
+#else
+    tail = constkTailValues[static_cast<int>(k)];
+#endif
   } else {
-    double kp1sq = (k + 1) * (k + 1);
+    real_t kp1sq = (k + 1) * (k + 1);
     tail = (1.0 / 12 - (1.0 / 360 - 1.0 / 1260 / kp1sq) / kp1sq) / (k + 1);
   }
   return tail;
@@ -72,27 +99,29 @@ inline HOSTDEVICE double stirling_approx_tail(double k) {
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 __nv_exec_check_disable__
 template <typename T>
-inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
+inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
+                              typename T::real_t p) {
   // This is spq in the paper.
-  const double stddev = std::sqrt(n * p * (1 - p));
+  using real_t = typename T::real_t;
+  const real_t stddev = std::sqrt(n * p * (1 - p));
 
   // Other coefficients for Transformed Rejection sampling.
-  const double b = 1.15 + 2.53 * stddev;
-  const double a = -0.0873 + 0.0248 * b + 0.01 * p;
-  const double c = n * p + 0.5;
-  const double v_r = 0.92 - 4.2 / b;
-  const double r = p / (1 - p);
+  const real_t b = 1.15 + 2.53 * stddev;
+  const real_t a = -0.0873 + 0.0248 * b + 0.01 * p;
+  const real_t c = n * p + 0.5;
+  const real_t v_r = 0.92 - 4.2 / b;
+  const real_t r = p / (1 - p);
 
-  const double alpha = (2.83 + 5.1 / b) * stddev;
-  const double m = std::floor((n + 1) * p);
+  const real_t alpha = (2.83 + 5.1 / b) * stddev;
+  const real_t m = std::floor((n + 1) * p);
 
-  double draw;
+  real_t draw;
   while (true) {
-    double u = dust::unif_rand(rng_state);
-    double v = dust::unif_rand(rng_state);
+    real_t u = dust::unif_rand(rng_state);
+    real_t v = dust::unif_rand(rng_state);
     u = u - 0.5;
-    double us = 0.5 - std::fabs(u);
-    double k = std::floor((2 * a / us + b) * u + c);
+    real_t us = 0.5 - std::fabs(u);
+    real_t k = std::floor((2 * a / us + b) * u + c);
 
     // Region for which the box is tight, and we
     // can return our calculated value This should happen
@@ -112,7 +141,7 @@ inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
     // For all (u, v) pairs outside of the bounding box, this calculates the
     // transformed-reject ratio.
     v = std::log(v * alpha / (a / (us * us) + b));
-    double upperbound =
+    real_t upperbound =
       ((m + 0.5) * std::log((m + 1) / (r * (n - m + 1))) +
        (n + 1) * std::log((n - m + 1) / (n - k + 1)) +
        (k + 0.5) * std::log(r * (n - k + 1) / (k + 1)) +
@@ -128,7 +157,7 @@ inline HOSTDEVICE double btrs(T& rng_state, double n, double p) {
 
 template <typename T>
 HOSTDEVICE int rbinom(T& rng_state, int n,
-              typename T::real_t p) {
+                      typename T::real_t p) {
   int draw;
 
   // Early exit:

@@ -4,6 +4,9 @@
 #include <cmath>
 
 #ifdef __NVCC__
+  // Exact function for this table is
+  // std::lgamma(k + 1) - (std::log(std::sqrt(2 * M_PI)) +
+  //    (k + 0.5) * std::log(k + 1) - (k + 1))
 __constant__ float constkTailValues[] =
   {0.08106146679532733f,
    0.041340695955409457f,

@@ -44,6 +44,12 @@ size_t stride_copy(T dest, double src, size_t at, size_t stride) {
 }
 
 template <typename T>
+size_t stride_copy(T dest, float src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
+template <typename T>
 size_t stride_copy(T dest, uint64_t src, size_t at, size_t stride) {
   dest[at] = src;
   return at + stride;

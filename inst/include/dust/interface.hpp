@@ -291,7 +291,7 @@ size_t dust_size_internal_int(SEXP ptr) {
 }
 
 template <typename T>
-std::vector<double> dust_internal_real(SEXP ptr) {
+std::vector<typename T::real_t> dust_internal_real(SEXP ptr) {
   Dust<T> *obj = cpp11::as_cpp<cpp11::external_pointer<Dust<T>>>(ptr).get();
   return obj->internal_real();
 }

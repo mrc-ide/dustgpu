@@ -94,7 +94,7 @@ size_t dust_sir_size_internal_int(SEXP ptr) {
 }
 
 [[cpp11::register]]
-std::vector<double> dust_sir_internal_real(SEXP ptr) {
+std::vector<float> dust_sir_internal_real(SEXP ptr) {
   return dust_internal_real<sir>(ptr);
 }
 

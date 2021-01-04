@@ -195,6 +195,11 @@ inline double na_value<double>() {
   return NA_REAL;
 }
 
+template <>
+inline float na_value<float>() {
+  return NAN;
+}
+
 template <typename T>
 inline bool is_na(T x);
 
@@ -206,6 +211,11 @@ inline bool is_na(int x) {
 template <>
 inline bool is_na(double x) {
   return ISNA(x);
+}
+
+template <>
+inline bool is_na(float x) {
+  return std::isnan(x);
 }
 
 inline size_t object_length(cpp11::sexp x) {

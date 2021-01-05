@@ -23,36 +23,18 @@ size_t destride_copy(T dest, U& src, size_t at, size_t stride) {
   return i;
 }
 
-template <typename T, typename U, typename Enable = void>
-size_t stride_copy(T dest, U& src, size_t at, size_t stride) {
+template <typename T, typename U>
+size_t stride_copy(T dest, U src, size_t at, size_t stride) {
+  dest[at] = src;
+  return at + stride;
+}
+
+template <typename T, typename U>
+size_t stride_copy(T dest, const std::vector<U>& src, size_t at, size_t stride) {
   for (size_t i = 0; i < src.size(); ++i, at += stride) {
     dest[at] = src[i];
   }
   return at;
-}
-
-template <typename T>
-size_t stride_copy(T dest, int src, size_t at, size_t stride) {
-  dest[at] = src;
-  return at + stride;
-}
-
-template <typename T>
-size_t stride_copy(T dest, double src, size_t at, size_t stride) {
-  dest[at] = src;
-  return at + stride;
-}
-
-template <typename T>
-size_t stride_copy(T dest, float src, size_t at, size_t stride) {
-  dest[at] = src;
-  return at + stride;
-}
-
-template <typename T>
-size_t stride_copy(T dest, uint64_t src, size_t at, size_t stride) {
-  dest[at] = src;
-  return at + stride;
 }
 
 // Alternative (protoype - definition in model file)

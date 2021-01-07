@@ -443,9 +443,9 @@ DEVICE void update_device<sir>(size_t step,
   int offset_internal_p_SI = offset_internal_n_SI + dim_n_SI;
   int offset_internal_s_ij = offset_internal_p_SI + dim_p_SI;
 
-  double beta = internal_real[0];
-  double dt = internal_real[1];
-  double p_IR = internal_real[2];
+  real_t beta = internal_real[0];
+  real_t dt = internal_real[1];
+  real_t p_IR = internal_real[2];
 
   // TODO - alternative would be to make offsets relative, then could
   // use operator+ after first assignment

@@ -22,13 +22,12 @@ to when its destructor is called (end of file).
 
 To run nsight compute profile:
 ```
-ncu -o sirs_profile_<commit> --set full --target-processes all /usr/bin/Rscript run_dust.R
+ncu -c 7 -o sirs_profile_<commit> --set full --target-processes all /usr/bin/Rscript run_dust.R
 ```
-This is the same as above, but only a single loop iteration is run, so
-each kernel is called once.
+This is the same as above, but only a the first two kernel calls are profiled from
+the loop. The parameters are set so that the first kernel uses more binomial inversion, the second more BTRS.
 
-NB: The R files will compile the code for you if it has changed, as long as `nvcc` is on
-the path.
+NB: The R files will compile the code for you if it has changed, as long as `nvcc` is on the path.
 
 ## Testing
 

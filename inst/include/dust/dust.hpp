@@ -618,7 +618,7 @@ private:
 
         // Destride RNG
         for (size_t j = 0; j < rng_len; ++j) {
-          rng[i * np + j] = rngi[i + j * np];
+          rng[i * rng_len + j] = rngi[i + j * np];
         }
       }
       _rng.import_state(rng);

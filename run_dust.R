@@ -13,13 +13,13 @@ transmission <- contact$matrix
 N_age <- length(age.limits)
 n_particles <- 100000L
 dt <- 0.25
-n_steps <- 1L
+n_steps <- 20L
 steps_per_obs <- 20L
 
 pkgload::load_all()
 
 # CREATE MODEL
-
+# This beta is a massive R0, but gives kernel 1 binomial inversion, later kernels BTRS
 sir_model <- dustgpu::sir$new(data = list(dt = dt,
                                  S_ini = 1E3,
                                  I_ini = 10,

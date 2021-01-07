@@ -14,7 +14,7 @@ Setup (once):
 
 To run nsight systems profile:
 ```
-nsys profile -o sirs_timeline_<commit> --trace cuda,osrt,openmp -c cudaProfilerApi --force-overwrite true /usr/bin/Rscript run_dust_nsys.R
+nsys profile -o sirs_timeline_<commit> --trace cuda,osrt,openmp -c cudaProfilerApi --force-overwrite true /usr/bin/Rscript run_dust.R
 ```
 This runs a full example where the kernels are called in sequence in
 a loop. The profile runs from when the model object is created (`dustgpu::sir$new`)

@@ -5,7 +5,6 @@ test_that("cpp11 setup is working", {
 })
 
 test_that("device run gives the same results", {
-  skip_if(sir_model_d$has_cuda() == FALSE, "CUDA not supported")
   data(polymod, package = "socialmixr")
 
   age.limits = seq(0, 70, 10)
@@ -39,6 +38,7 @@ test_that("device run gives the same results", {
                                   n_particles = n_particles,
                                   n_threads = 1L,
                                   seed = 1L)
+  skip_if(sir_model_d$has_cuda() == FALSE, "CUDA not supported")
   sir_model_h <- dustgpu::sir$new(data = list(dt = dt,
                                               S_ini = S_ini,
                                               I_ini = I_ini,

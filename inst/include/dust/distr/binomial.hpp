@@ -7,7 +7,7 @@
   // Exact function for this table is
   // std::lgamma(k + 1) - (std::log(std::sqrt(2 * M_PI)) +
   //    (k + 0.5) * std::log(k + 1) - (k + 1))
-__constant__ float constkTailValues[] =
+__constant__ float constkTailValues[] = {
                                   0.041340695955409457f,
                                   0.027677925684998161f,
                                   0.020790672103765173f,

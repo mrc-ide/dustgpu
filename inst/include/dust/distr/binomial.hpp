@@ -146,7 +146,7 @@ namespace distr {
 // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
 template <typename T>
 HOSTDEVICE T fast_pow(T x, int n) {
-  T pow = 1.0;
+  T pow = 1.0f;
   if (n != 0) {
     while (true) {
       if(n & 01) {
@@ -249,13 +249,13 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
   const real_t stddev = std::sqrt(n * p * (1 - p));
 
   // Other coefficients for Transformed Rejection sampling.
-  const real_t b = 1.15 + 2.53 * stddev;
-  const real_t a = -0.0873 + 0.0248 * b + 0.01 * p;
-  const real_t c = n * p + 0.5;
-  const real_t v_r = 0.92 - 4.2 / b;
+  const real_t b = 1.15f + 2.53f * stddev;
+  const real_t a = -0.0873f + 0.0248f * b + 0.01f * p;
+  const real_t c = n * p + 0.5f;
+  const real_t v_r = 0.92f - 4.2f / b;
   const real_t r = p / (1 - p);
 
-  const real_t alpha = (2.83 + 5.1 / b) * stddev;
+  const real_t alpha = (2.83f + 5.1f / b) * stddev;
   const real_t m = std::floor((n + 1) * p);
 
   real_t draw;
@@ -285,9 +285,9 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
     // transformed-reject ratio.
     v = std::log(v * alpha / (a / (us * us) + b));
     real_t upperbound =
-      ((m + 0.5) * std::log((m + 1) / (r * (n - m + 1))) +
+      ((m + 0.5f) * std::log((m + 1) / (r * (n - m + 1))) +
        (n + 1) * std::log((n - m + 1) / (n - k + 1)) +
-       (k + 0.5) * std::log(r * (n - k + 1) / (k + 1)) +
+       (k + 0.5f) * std::log(r * (n - k + 1) / (k + 1)) +
        stirling_approx_tail(m) + stirling_approx_tail(n - m) -
        stirling_approx_tail(k) - stirling_approx_tail(n - k));
     if (v <= upperbound) {

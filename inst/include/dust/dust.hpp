@@ -564,6 +564,24 @@ private:
     _scatter_index = dust::DeviceArray<int>(n * n_particles);
 #ifdef __NVCC__
     set_cub_tmp();
+    // I am not seeing any difference from this (may be wrong use, or that 3090 only has 6Mb)?
+    // But this is where I think setting up persisting L2 access would go
+    // Note: the base_ptr would best be offset to a region of internal state which is accessed
+    // multiple times. Here s_ij I think is the largest. I think odin could automate this if
+    // it looked useful
+    /*
+    size_t data_offset = 10700000; // Based on 100k particles, start of sij in internal_real (obviously don't hard code this)
+    cudaStreamAttrValue stream_attribute;                                         // Stream level attributes data structure
+    stream_attribute.accessPolicyWindow.base_ptr  = reinterpret_cast<void*>(_internal_real.data() + data_offset); // Global Memory data pointer
+    stream_attribute.accessPolicyWindow.num_bytes = 6*1024*1024;                    // Number of bytes for persisting accesses.
+                                                                                  // (Must be less than cudaDeviceProp::accessPolicyMaxWindowSize)
+    stream_attribute.accessPolicyWindow.hitRatio  = 1.0;                          // Hint for L2 cache hit ratio for persisting accesses in the num_bytes region
+    stream_attribute.accessPolicyWindow.hitProp   = cudaAccessPropertyPersisting; // Type of access property on cache hit
+    stream_attribute.accessPolicyWindow.missProp  = cudaAccessPropertyStreaming;  // Type of access property on cache miss.
+
+    //Set the attributes to a CUDA stream of type cudaStream_t
+    CUDA_CALL(cudaStreamSetAttribute(0, cudaStreamAttributeAccessPolicyWindow, &stream_attribute));
+    */
 #endif
   }
 

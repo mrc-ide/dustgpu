@@ -262,8 +262,8 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
   while (true) {
     real_t u = dust::unif_rand(rng_state);
     real_t v = dust::unif_rand(rng_state);
-    u = u - 0.5;
-    real_t us = 0.5 - std::fabs(u);
+    u = u - 0.5f;
+    real_t us = 0.5f - std::fabs(u);
     real_t k = std::floor((2 * a / us + b) * u + c);
 
     // Region for which the box is tight, and we
@@ -271,7 +271,7 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
     // 0.86 * v_r times. In the limit as n * p is large,
     // the acceptance rate converges to ~79% (and in the lower
     // regime it is ~24%).
-    if (us >= 0.07 && v <= v_r) {
+    if (us >= 0.07f && v <= v_r) {
       draw = k;
       break;
     }
@@ -320,7 +320,7 @@ HOSTDEVICE int rbinom(T& rng_state, int n,
   */
 
   typename T::real_t q = p;
-  if (p > 0.5) {
+  if (p > 0.5f) {
     q = 1 - q;
   }
 
@@ -330,7 +330,7 @@ HOSTDEVICE int rbinom(T& rng_state, int n,
     draw = static_cast<int>(binomial_inversion(rng_state, n, q));
   }
 
-  if (p > 0.5) {
+  if (p > 0.5f) {
     draw = n - draw;
   }
 

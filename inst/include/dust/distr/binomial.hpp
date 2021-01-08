@@ -167,8 +167,8 @@ HOSTDEVICE T fast_pow(T x, int n) {
 // (given p) that corresponds to this
 __nv_exec_check_disable__
 template <typename T>
-inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_statef,
-                                                        int nf,
+inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
+                                                        int n,
                                                         typename T::real_t p) {
   using real_t = typename T::real_t;
 #ifdef __NVCC__
@@ -242,7 +242,7 @@ inline HOSTDEVICE float stirling_approx_tail(float k) {
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 __nv_exec_check_disable__
 template <typename T>
-inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t nf,
+inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t n,
                               typename T::real_t p) {
   // This is spq in the paper.
   using real_t = typename T::real_t;
@@ -268,7 +268,7 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t nf,
 
     // Region for which the box is tight, and we
     // can return our calculated value This should happen
-    // 0.86 * v_r times. In the limit as n * p is largef,
+    // 0.86 * v_r times. In the limit as n * p is large,
     // the acceptance rate converges to ~79% (and in the lower
     // regime it is ~24%).
     if (us >= 0.07 && v <= v_r) {
@@ -299,7 +299,7 @@ inline HOSTDEVICE double btrs(T& rng_state, typename T::real_t nf,
 }
 
 template <typename T>
-HOSTDEVICE int rbinom(T& rng_state, int nf,
+HOSTDEVICE int rbinom(T& rng_state, int n,
                       typename T::real_t p) {
   int draw;
 

@@ -59,6 +59,12 @@ inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
                                                         int n,
                                                         typename T::real_t p) {
   using real_t = typename T::real_t;
+#ifdef __NVCC__
+  // Assumes float for now - use DBL_EPSILON if real_t == double
+  const real_t epsilon = FLT_EPSILON;
+#else
+  constexpr real_t epsilon = std::numeric_limits<real_t>::epsilon();
+#endif
   real_t u = dust::unif_rand(rng_state);
 
   // This is equivalent to qbinom(u, n, p)
@@ -67,7 +73,7 @@ inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
   const real_t g = r * (n + 1);
   real_t f = fast_pow(q, n);
   int k = 0;
-  while (u >= f) {
+  while ((u - f) >= epsilon) {
     u -= f;
     k++;
     f *= (g / k - r);

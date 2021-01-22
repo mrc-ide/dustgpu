@@ -185,7 +185,7 @@ inline HOSTDEVICE typename T::real_t binomial_inversion(T& rng_state,
   const real_t g = r * (n + 1);
   real_t f = fast_pow(q, n);
   int k = 0;
-  while (u >= f && f > epsilon) {
+  while (u - f >= 1E-6 && f > epsilon) {
     u -= f;
     k++;
     f *= (g / k - r);

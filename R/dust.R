@@ -9,6 +9,7 @@ sirs <- R6::R6Class(
     info_ = NULL,
     n_threads_ = NULL,
     n_particles_ = NULL,
+    n_particles_each_ = NULL,
     ptr_ = NULL,
     param_ = list(I_ini = list(has_default = FALSE, default_value = NULL,
     rank = 0, min = -Inf, max = Inf, integer = FALSE), m = list(
@@ -77,6 +78,12 @@ sirs <- R6::R6Class(
       private$n_particles_ <- n_particles
       private$ptr_ <- res[[1L]]
       private$info_ <- res[[2L]]
+            private$n_particles_ <- prod(private$shape_)
+      if (pars_multi) {
+        private$n_particles_each_ <- private$n_particles_ / length(pars)
+      } else {
+        private$n_particles_each_ <- private$n_particles_
+      }
     },
 
     ##' @description

@@ -329,6 +329,42 @@ cpp11::sexp dust_info(const dust::pars_t<T>& pars) {
   return R_NilValue;
 }
 
+template <typename T>
+cpp11::list dust_device_info() {
+#ifdef __NVCC__
+  int device_count;
+  CUDA_CALL(cudaGetDeviceCount(&device_count));
+
+  int alloc_size = device_count > 0 ? device_count : 1;
+  cpp11::writable::integers ids(alloc_size);
+  cpp11::writable::doubles memory(alloc_size);
+  cpp11::writable::strings names(alloc_size);
+
+  if (device_count > 0) {
+    for (int i = 0; i < device_count; ++i) {
+      cudaDeviceProp properties;
+      CUDA_CALL(cudaGetDeviceProperties(&properties, i));
+      ids[i] = i;
+      names[i] = properties.name;
+      memory[i] = static_cast<double>(properties.totalGlobalMem) / (1024 * 1024);
+    }
+  } else {
+    ids[0] = NA_INTEGER;
+    memory[0] = NA_REAL;
+    names[0] = NA_STRING;
+  }
+#else
+  cpp11::writable::integers ids = {NA_INTEGER};
+  cpp11::writable::doubles memory = {NA_INTEGER};
+  cpp11::writable::strings names = {NA_STRING};
+#endif
+  return cpp11::writable::list({
+    "ID"_nm = ids,
+    "name"_nm = names,
+    "memory_MB"_nm = memory
+  });
+}
+
 template <typename T, typename std::enable_if<!std::is_same<dust::no_data, typename T::data_t>::value, int>::type = 0>
 void dust_set_data(SEXP ptr, cpp11::list r_data) {
   typedef typename T::data_t data_t;

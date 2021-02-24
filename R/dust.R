@@ -390,5 +390,13 @@ sirs <- R6::R6Class(
     filter = function(save_history = FALSE) {
       dust_sirs_filter(private$ptr_, save_history)
     }
+
+    has_cuda = function() {
+      dust_sir_has_cuda()
+    },
+
+    available_devices = function() {
+      dust_sir_device_info()
+    }
   ))
 class(sirs) <- c("dust_generator", class(sirs))

@@ -3,9 +3,9 @@
 #include <dust/interface.hpp>
 
 template <typename real_t, typename container>
-real_t odin_sum1(const container x, size_t from, size_t to);
+HOSTDEVICE real_t odin_sum1(const container x, size_t from, size_t to);
 template <typename real_t, typename container>
-real_t odin_sum2(const container x, int from_i, int to_i, int from_j, int to_j, int dim_x_1);
+HOSTDEVICE real_t odin_sum2(const container x, int from_i, int to_i, int from_j, int to_j, int dim_x_1);
 // [[dust::class(sirs)]]
 // [[dust::param(I_ini, has_default = FALSE, default_value = NULL, rank = 0, min = -Inf, max = Inf, integer = FALSE)]]
 // [[dust::param(m, has_default = FALSE, default_value = NULL, rank = 2, min = -Inf, max = Inf, integer = FALSE)]]
@@ -73,7 +73,7 @@ public:
     std::copy(shared->initial_R.begin(), shared->initial_R.end(), state.begin() + shared->offset_variable_R);
     return state;
   }
-  void update(size_t step, const real_t * state, dust::rng_state_t<real_t>& rng_state, real_t * state_next) {
+  HOST void update(size_t step, const real_t * state, dust::rng_state_t<real_t>& rng_state, real_t * state_next) {
     const real_t * S = state + 1;
     const real_t * I = state + shared->offset_variable_I;
     const real_t * R = state + shared->offset_variable_R;
@@ -157,7 +157,7 @@ void dust::device_shared_copy<sirs>(dust::shared_ptr<sirs> shared, int * shared_
   shared_real = dust::shared_copy(shared_real, shared->m);
 }
 template<>
-void update_device<sirs>(size_t step, const dust::interleaved<sirs::real_t> state, dust::interleaved<int> internal_int, dust::interleaved<sirs::real_t> internal_real, const int * shared_int, const sirs::real_t * shared_real, dust::rng_state_t<sirs::real_t>& rng_state, dust::interleaved<sirs::real_t> state_next) {
+DEVICE void update_device<sirs>(size_t step, const dust::interleaved<sirs::real_t> state, dust::interleaved<int> internal_int, dust::interleaved<sirs::real_t> internal_real, const int * shared_int, const sirs::real_t * shared_real, dust::rng_state_t<sirs::real_t>& rng_state, dust::interleaved<sirs::real_t> state_next) {
   typedef sirs::real_t real_t;
   int dim_n_IR = shared_int[0];
   int dim_n_RS = shared_int[1];
@@ -221,7 +221,7 @@ void update_device<sirs>(size_t step, const dust::interleaved<sirs::real_t> stat
   }
 }
 template <typename real_t, typename container>
-real_t odin_sum2(const container x, int from_i, int to_i, int from_j, int to_j, int dim_x_1) {
+HOSTDEVICE real_t odin_sum2(const container x, int from_i, int to_i, int from_j, int to_j, int dim_x_1) {
   real_t tot = 0.0;
   for (int j = from_j; j < to_j; ++j) {
     int jj = j * dim_x_1;
@@ -428,7 +428,7 @@ inline std::vector<float> user_get_array_value(cpp11::sexp x, const char * name,
 // This is sum with inclusive "from", exclusive "to", following the
 // same function in odin
 template <typename real_t, typename container>
-real_t odin_sum1(const container x, size_t from, size_t to) {
+HOSTDEVICE real_t odin_sum1(const container x, size_t from, size_t to) {
   real_t tot = 0.0;
   for (size_t i = from; i < to; ++i) {
     tot += x[i];

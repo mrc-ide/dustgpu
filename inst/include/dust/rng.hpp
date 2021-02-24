@@ -8,7 +8,7 @@
 #include "distr/normal.hpp"
 #include "distr/poisson.hpp"
 #include "distr/uniform.hpp"
-#include "containers.hpp"
+#include "containers.cuh"
 
 namespace dust {
 

@@ -25,6 +25,8 @@
 // R/cpp11 includes
 #include <cpp11/protect.hpp>
 
+const int warp_size = 32;
+
 static void HandleCUDAError(const char *file, int line,
                             cudaError_t status = cudaGetLastError()) {
 #ifdef _DEBUG

@@ -2,6 +2,7 @@
 
 Not a real package, just here for our next generation of dust + gpu support.
 
+Based on dust@56b0e022600869cf4b60f2969e60fb2a671c72e4
 ## Profiling
 
 Setup (once):

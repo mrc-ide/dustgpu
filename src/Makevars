@@ -1,15 +1,16 @@
 # -*- makefile -*-
 CXX_STD = CXX14
-OBJECTS = cpp11.o dustgpu.o sir.o
+OBJECTS = cpp11.o sirs.o
 PKG_CXXFLAGS=-I../inst/include $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS=-L/usr/local/cuda-11.1/lib64 -lcudart $(SHLIB_OPENMP_CXXFLAGS)
 
 # Notes
 # For debug set 'nvcc -g -G', 'g++ -g -O0'
 # For profiling set 'nvcc -pg --generate-line-info'
+# Optimising add '--use_fast_math'
 
 NVCC = nvcc
-NVCC_FLAGS = -std=c++14 -pg --generate-line-info -O2 --use_fast_math -I. -I$(R_INCLUDE_DIR) -Xcompiler $(SHLIB_OPENMP_CXXFLAGS) -I../inst/include $(CLINK_CPPFLAGS) -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_86,code=sm_86 -Xcompiler -fPIC -x cu
+NVCC_FLAGS = -std=c++14 -pg --generate-line-info -O2 -I. -I$(R_INCLUDE_DIR) -Xcompiler $(SHLIB_OPENMP_CXXFLAGS) -I../inst/include $(CLINK_CPPFLAGS) -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_86,code=sm_86 -Xcompiler -fPIC -x cu
 
 %.o: %.cu
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@

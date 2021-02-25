@@ -396,7 +396,7 @@ sirs <- R6::R6Class(
     ##' (state x particles x parameter x time).
     filter = function(save_history = FALSE) {
       dust_sirs_filter(private$ptr_, save_history)
-    }
+    },
 
     has_cuda = function() {
       dust_sir_has_cuda()

@@ -1228,8 +1228,8 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   // Get pars index j, and start address in shared space
   const int block_per_pars = (n_particles_each + blockDim.x - 1) / blockDim.x;
   const int j = blockIdx.x / block_per_pars;
-  int * p_shared_int = shared_int + j * n_shared_int;
-  real_t * p_shared_real = shared_real + j * n_shared_real;
+  const int * p_shared_int = shared_int + j * n_shared_int;
+  const real_t * p_shared_real = shared_real + j * n_shared_real;
 
   // If we're using it, use the first warp in the block to load the shared pars
   // into __shared__ L1

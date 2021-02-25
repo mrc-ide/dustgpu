@@ -562,7 +562,7 @@ public:
     const size_t step_start = step();
 #ifdef __NVCC__
     size_t blockSize =
-      std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size));
+      std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size);
     const size_t blockCount = n_pars_effective() * (_n_particles_each + blockSize - 1) / blockSize;
     const size_t shared_size_bytes = _device_data.n_shared_int * n_pars_effective() * sizeof(int) +
                                      _device_data.n_shared_real * n_pars_effective() * sizeof(real_t);
@@ -594,7 +594,8 @@ public:
                      _device_data.n_shared_real,
                      _device_data.shared_int.data(),
                      _device_data.shared_real.data(),
-                     _device_data.rng.data());
+                     _device_data.rng.data()
+                     false);
 #endif
 
     // In the inner loop, the swap will keep the locally scoped

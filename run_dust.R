@@ -36,7 +36,7 @@ sir_model <- dustgpu::sirs$new(pars = list(dt = dt,
 sir_model$set_index(c(1L, 2L, 10L, 18L))
 # RUN
 for (obs_step in 1:n_steps) {
-    results <- sir_model$run_device(obs_step * steps_per_obs)
+    results <- sir_model$run(obs_step * steps_per_obs, TRUE)
     order <- sample.int(n_particles, replace = T)
     sir_model$reorder(order)
 }

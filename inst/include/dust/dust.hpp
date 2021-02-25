@@ -437,7 +437,7 @@ public:
     _stale_host(false),
     _stale_device(true) {
 #ifdef __NVCC__
-    initialise_device(0); // TODO - set this from value in constructor
+    initialise_device(1); // TODO - set this from value in constructor
 #endif
     initialise(pars, step, n_particles, true);
     initialise_index();
@@ -456,7 +456,7 @@ public:
     _stale_host(false),
     _stale_device(true) {
 #ifdef __NVCC__
-    initialise_device(0); // TODO - set this from value in constructor
+    initialise_device(1); // TODO - set this from value in constructor
 #endif
     initialise(pars, step, _n_particles_each, true);
     initialise_index();
@@ -1228,8 +1228,8 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   // Get pars index j, and start address in shared space
   const int block_per_pars = (n_particles_each + blockDim.x - 1) / blockDim.x;
   const int j = blockIdx.x / block_per_pars;
-  const int * p_shared_int = shared_int + j * n_shared_int;
-  const real_t * p_shared_real = shared_real + j * n_shared_real;
+  int * p_shared_int = shared_int + j * n_shared_int;
+  real_t * p_shared_real = shared_real + j * n_shared_real;
 
   // If we're using it, use the first warp in the block to load the shared pars
   // into __shared__ L1
@@ -1268,7 +1268,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
 
     // Pick particle index based on block, don't process if off the end
     i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
-    max_i = n_particles_each * j;
+    max_i = n_particles_each * (j + 1);
   } else {
     // Otherwise CUDA thread number = particle
     i = blockIdx.x * blockDim.x + threadIdx.x;

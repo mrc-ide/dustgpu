@@ -161,6 +161,9 @@ HOSTDEVICE int rbinom(rng_state_t<real_t>& rng_state, int n,
   } else {
     draw = static_cast<int>(binomial_inversion(rng_state, n, q));
   }
+#ifdef __CUDA_ARCH__
+  __syncwarp();
+#endif
 
   if (p > static_cast<real_t>(0.5f)) {
     draw = n - draw;

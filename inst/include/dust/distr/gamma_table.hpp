@@ -264,4 +264,6 @@ const double kTailValues[] = {
                                   0.00065616662294587513,
                                   0.00065104034212026818,
                                   0.00064599353800076642f};
-#endif
+#endif // nvcc
+
+#endif // include guards

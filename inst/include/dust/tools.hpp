@@ -1,8 +1,27 @@
 #ifndef DUST_TOOLS_HPP
 #define DUST_TOOLS_HPP
 
+#include <cmath>
+#include <xmmintrin.h>
+#include <emmintrin.h>
 #include <algorithm>
 #include <numeric>
+
+inline HOSTDEVICE int round_fast(double x) {
+#ifdef __CUDA_ARCH__
+  return __double2int_rn(x);
+#else
+  return _mm_cvtsd_si32(_mm_set_sd(x));
+#endif
+}
+
+HOSTDEVICE int round_fast(float x) {
+#ifdef __CUDA_ARCH__
+  return __float2int_rn(x);
+#else
+  return _mm_cvt_ss2si(_mm_set_ss(x));
+#endif
+}
 
 template <typename real_t>
 void resample_weight(typename std::vector<real_t>::const_iterator w,

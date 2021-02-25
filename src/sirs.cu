@@ -79,10 +79,10 @@ public:
     const real_t * R = state + shared->offset_variable_R;
     state_next[0] = (step + 1) * shared->dt;
     for (int i = 1; i <= shared->dim_n_IR; ++i) {
-      internal.n_IR[i - 1] = dust::distr::rbinom(rng_state, std::round(I[i - 1]), shared->p_IR);
+      internal.n_IR[i - 1] = dust::distr::rbinom(rng_state, round_fast(I[i - 1]), shared->p_IR);
     }
     for (int i = 1; i <= shared->dim_n_RS; ++i) {
-      internal.n_RS[i - 1] = dust::distr::rbinom(rng_state, std::round(R[i - 1]), shared->p_RS);
+      internal.n_RS[i - 1] = dust::distr::rbinom(rng_state, round_fast(R[i - 1]), shared->p_RS);
     }
     for (int i = 1; i <= shared->dim_s_ij_1; ++i) {
       for (int j = 1; j <= shared->dim_s_ij_2; ++j) {
@@ -99,7 +99,7 @@ public:
       internal.p_SI[i - 1] = 1 - std::exp(- internal.lambda[i - 1] * shared->dt);
     }
     for (int i = 1; i <= shared->dim_n_SI; ++i) {
-      internal.n_SI[i - 1] = dust::distr::rbinom(rng_state, std::round(S[i - 1]), internal.p_SI[i - 1]);
+      internal.n_SI[i - 1] = dust::distr::rbinom(rng_state, round_fast(S[i - 1]), internal.p_SI[i - 1]);
     }
     for (int i = 1; i <= shared->dim_I; ++i) {
       state_next[shared->offset_variable_I + i - 1] = I[i - 1] + internal.n_SI[i - 1] - internal.n_IR[i - 1];
@@ -191,10 +191,10 @@ DEVICE void update_device<sirs>(size_t step, const dust::interleaved<sirs::real_
   const dust::interleaved<real_t> R = state + offset_variable_R;
   state_next[0] = (step + 1) * dt;
   for (int i = 1; i <= dim_n_IR; ++i) {
-    n_IR[i - 1] = dust::distr::rbinom(rng_state, std::round(I[i - 1]), p_IR);
+    n_IR[i - 1] = dust::distr::rbinom(rng_state, round_fast(I[i - 1]), p_IR);
   }
   for (int i = 1; i <= dim_n_RS; ++i) {
-    n_RS[i - 1] = dust::distr::rbinom(rng_state, std::round(R[i - 1]), p_RS);
+    n_RS[i - 1] = dust::distr::rbinom(rng_state, round_fast(R[i - 1]), p_RS);
   }
   for (int i = 1; i <= dim_s_ij_1; ++i) {
     for (int j = 1; j <= dim_s_ij_2; ++j) {
@@ -211,7 +211,7 @@ DEVICE void update_device<sirs>(size_t step, const dust::interleaved<sirs::real_
     p_SI[i - 1] = 1 - std::exp(- lambda[i - 1] * dt);
   }
   for (int i = 1; i <= dim_n_SI; ++i) {
-    n_SI[i - 1] = dust::distr::rbinom(rng_state, std::round(S[i - 1]), p_SI[i - 1]);
+    n_SI[i - 1] = dust::distr::rbinom(rng_state, round_fast(S[i - 1]), p_SI[i - 1]);
   }
   for (int i = 1; i <= dim_I; ++i) {
     state_next[offset_variable_I + i - 1] = I[i - 1] + n_SI[i - 1] - n_IR[i - 1];

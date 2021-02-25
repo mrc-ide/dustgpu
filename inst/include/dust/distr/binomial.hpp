@@ -36,7 +36,7 @@ inline HOSTDEVICE T binomial_inversion(rng_state_t<T>& rng_state, int n, T p) {
   T u = dust::unif_rand<T>(rng_state);
 
   // This is equivalent to qbinom(u, n, p)
-  const real_t epsilon = FLT_EPSILON;
+  const T epsilon = FLT_EPSILON;
   const T q = 1 - p;
   const T r = p / q;
   const T g = r * (n + 1);
@@ -68,7 +68,7 @@ inline HOSTDEVICE T stirling_approx_tail(T k) {
 __nv_exec_check_disable__
 template <typename T>
 inline HOSTDEVICE T btrs(rng_state_t<T>& rng_state, double n, double p) {
-  using real_t = typename T;
+  using typename real_t = typename T;
   const real_t one = real_t(1.0f);
   const real_t half = real_t(0.5f);
 
@@ -119,7 +119,7 @@ inline HOSTDEVICE T btrs(rng_state_t<T>& rng_state, double n, double p) {
        stirling_approx_tail(k) - stirling_approx_tail(n - k));
     if (v <= upperbound) {
       draw = k;
-      break
+      break;
     }
   }
   return draw;

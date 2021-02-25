@@ -201,7 +201,7 @@ struct device_state {
     rng = dust::device_array<uint64_t>(n_rng * n_particles);
     index = dust::device_array<char>(n_state * n_particles);
     n_selected = dust::device_array<int>(1);
-    scatter_index = dust::device_array<real_t>(n_state * n_particles);
+    scatter_index = dust::device_array<int>(n_state * n_particles);
     set_cub_tmp();
   }
   void swap() {
@@ -562,10 +562,10 @@ public:
     const size_t step_start = step();
 #ifdef __NVCC__
     size_t blockSize =
-      std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size);
+      std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size));
     const size_t blockCount = n_pars_effective() * (_n_particles_each + blockSize - 1) / blockSize;
-    const size_t shared_size_bytes = _device_data.n_shared_int * n_pars_effective() * sizeof(int) +
-                                     _device_data.n_shared_real * n_pars_effective() * sizeof(real_t);
+    size_t shared_size_bytes = _device_data.n_shared_int * n_pars_effective() * sizeof(int) +
+                               _device_data.n_shared_real * n_pars_effective() * sizeof(real_t);
     bool use_shared_L1 = true;
     if (shared_size_bytes > _shared_size) {
       shared_size_bytes = 0;
@@ -647,13 +647,13 @@ public:
                                  _device_data.n_selected.data(),
                                  _device_data.y.size());
       std::vector<real_t> y_selected(np * index_size);
-      _device_data.y_selected.getArray(y_selected);
+      _device_data.y_selected.get_array(y_selected);
 
 #ifdef _OPENMP
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
       for (size_t i = 0; i < np; ++i) {
-        destride_copy(end_state.data() + i * index_size, y_selected, i, np);
+        destride_copy(end_state + i * index_size, y_selected, i, np);
       }
 #else
       refresh_host();
@@ -665,7 +665,7 @@ public:
       #pragma omp parallel for schedule(static) num_threads(_n_threads)
 #endif
       for (size_t i = 0; i < np; ++i) {
-        _particles[i].state(_index, end_state.begin() + i * index_size);
+        _particles[i].state(_index, end_state + i * index_size);
       }
     }
   }
@@ -728,7 +728,7 @@ public:
           scatter_state[i * n_particles + j] = index[j] + i * n_particles;
         }
       }
-      _device_data.scatter_index.setArray(scatter_state);
+      _device_data.scatter_index.set_array(scatter_state);
 #ifdef __NVCC__
       const size_t blockSize = 128;
       const size_t blockCount = (scatter_state.size() + blockSize - 1) / blockSize;
@@ -1112,7 +1112,7 @@ private:
     for (auto idx_pos = _index.cbegin(); idx_pos != _index.cend(); idx_pos++) {
       std::fill_n(bool_idx.begin() + (*idx_pos * n_particles), n_particles, 1);
     }
-    _device_data.index.setArray(bool_idx);
+    _device_data.index.set_array(bool_idx);
     _device_data.set_cub_tmp();
   }
 
@@ -1236,7 +1236,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   }
   __syncthreads();
 
-  int = i * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
+  int i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
   if (i < n_particles_each * j) {
 #else
   // omp here

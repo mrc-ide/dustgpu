@@ -148,8 +148,9 @@ HOSTDEVICE double unif_rand(rng_state_t<double>& state) {
   // 18446744073709551616.0 == __ull2double_rn(UINT64_MAX)
   double rand = (__ddiv_rn(__ull2double_rn(value), 18446744073709551616.0));
 #else
-  return double(value) / double(std::numeric_limits<uint64_t>::max());
+  double rand = double(value) / double(std::numeric_limits<uint64_t>::max());
 #endif
+  return rand;
 }
 
 template <>
@@ -158,8 +159,9 @@ HOSTDEVICE float unif_rand(rng_state_t<float>& state) {
 #ifdef __CUDA_ARCH__
   float rand = (__fdiv_rn(__ull2float_rn(value), 18446744073709551616.0f));
 #else
-  return float(value) / float(std::numeric_limits<uint64_t>::max());
+  float rand = float(value) / float(std::numeric_limits<uint64_t>::max());
 #endif
+  return rand;
 }
 
 }

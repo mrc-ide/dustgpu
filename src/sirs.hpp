@@ -5,7 +5,7 @@
 
 [[cpp11::register]]
 SEXP dust_sirs_alloc(cpp11::list r_pars, bool pars_multi, size_t step,
-                         size_t n_particles, size_t n_threads,
+                         cpp11::sexp n_particles, size_t n_threads,
                          cpp11::sexp r_seed) {
   return dust_alloc<sirs>(r_pars, pars_multi, step, n_particles,
                                n_threads, r_seed);

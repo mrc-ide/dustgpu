@@ -38,7 +38,7 @@ test_that("device run gives the same results", {
                                   seed = 1L,
                                   pars_multi = FALSE)
   skip_if(sir_model_d$has_cuda() == FALSE, "CUDA not supported")
-  sir_model_h <- dustgpu::sirs$new(data = list(dt = dt,
+  sir_model_h <- dustgpu::sirs$new(pars = list(dt = dt,
                                               S_ini = S_ini,
                                               I_ini = I_ini,
                                               beta = beta,

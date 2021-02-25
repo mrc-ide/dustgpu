@@ -399,7 +399,7 @@ sirs <- R6::R6Class(
     },
 
     has_cuda = function() {
-      dust_sir_has_cuda()
+      dust_sirs_capabilities()[["cuda"]]
     },
 
     available_devices = function() {

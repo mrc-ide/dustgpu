@@ -561,15 +561,26 @@ public:
     refresh_device();
     const size_t step_start = step();
 #ifdef __NVCC__
-    size_t blockSize =
-      std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size));
-    const size_t blockCount = n_pars_effective() * (_n_particles_each + blockSize - 1) / blockSize;
+    // Set up blocks and shared memory preferences
+    size_t blockSize = 128;
+    size_t blockCount;
+    bool use_shared_L1 = true;
     size_t shared_size_bytes = _device_data.n_shared_int * n_pars_effective() * sizeof(int) +
                                _device_data.n_shared_real * n_pars_effective() * sizeof(real_t);
-    bool use_shared_L1 = true;
-    if (shared_size_bytes > _shared_size) {
-      shared_size_bytes = 0;
+    if (_n_particles_each < warp_size || shared_size_bytes > _shared_size) {
+      // If not enough particles per pars to make a whole block use shared, or
+      // if shared_t too big for L1, turn it off, and run in 'classic' mode where
+      // each particle is totally independent
       use_shared_L1 = false;
+      shared_size_bytes = 0;
+      blockCount = n_particles() * (n_particles() + blockSize - 1) / blockSize;
+    } else {
+      // If it's possible to make blocks with shared_t in L1 cache, each block runs
+      // a pars set. Each pars set has enough blocks to run all of its particles,
+      // the final block may have some threads that don't do anything (hang off the end)
+      blockSize =
+        std::min(128, warp_size * static_cast<int>((_n_particles_each + warp_size - 1) / warp_size));
+      blockCount = n_pars_effective() * (_n_particles_each + blockSize - 1) / blockSize;
     }
     run_particles<T><<<blockCount, blockSize, shared_size_bytes>>>(
                      step_start, step_end, _particles.size(),
@@ -1211,14 +1222,20 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   const size_t n_particles_each = n_particles / n_pars;
 
 #ifdef __NVCC__
+  // Particle index i, and max index to process in the block
+  int i, max_i;
+
+  // Get pars index j, and start address in shared space
   const int block_per_pars = (n_particles_each + blockDim.x - 1) / blockDim.x;
   const int j = blockIdx.x / block_per_pars;
   const int * p_shared_int = shared_int + j * n_shared_int;
   const real_t * p_shared_real = shared_real + j * n_shared_real;
 
+  // If we're using it, use the first warp in the block to load the shared pars
+  // into __shared__ L1
   extern __shared__ int shared_block[];
-  int * shared_block_int = shared_block;
   if (use_shared_L1) {
+    int * shared_block_int = shared_block;
     if (threadIdx.x < warp_size) {
       for (int lidx = threadIdx.x; lidx < n_shared_int; lidx += warp_size) {
         shared_block_int[lidx] = p_shared_int[lidx];
@@ -1226,6 +1243,8 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
     }
     p_shared_int = shared_block_int;
 
+    // Must only have a single __shared__ definition, cast to use different
+    // types within it
     real_t * shared_block_real = (real_t*)&shared_block[n_shared_int];
     if (threadIdx.x < warp_size) {
       for (int lidx = threadIdx.x; lidx < n_shared_real; lidx += warp_size) {
@@ -1233,11 +1252,18 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
       }
     }
     p_shared_real = shared_block_real;
-  }
-  __syncthreads();
 
-  int i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
-  if (i < n_particles_each * j) {
+    // Pick particle index based on block, don't process if off the end
+    i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
+    max_i = n_particles_each * j
+  } else {
+    // Otherwise CUDA thread number = particle
+    i = blockIdx.x * blockDim.x + threadIdx.x;
+    max_i = n_particles;
+  }
+  __syncthreads(); // Required to sync loads into L1 cache
+
+  if (i < max_i) {
 #else
   // omp here
   for (size_t i = 0; i < n_particles; ++i) {

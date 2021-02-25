@@ -20,17 +20,19 @@ pkgload::load_all()
 
 # CREATE MODEL
 # This beta is a massive R0, but gives kernel 1 binomial inversion, later kernels BTRS
-sir_model <- dustgpu::sir$new(data = list(dt = dt,
-                                 S_ini = 1E3,
-                                 I_ini = 10,
-                                 beta = 0.3,
-                                 gamma = 0.1,
-                                 m = transmission,
-                                 N_age = N_age),
-                              step = 0,
-                                  n_particles = n_particles,
-                                  n_threads = 1L,
-                                  seed = 1L)
+sir_model <- dustgpu::sirs$new(pars = list(dt = dt,
+                                           S_ini = 1E3,
+                                           I_ini = 10,
+                                           beta = 0.3,
+                                           gamma = 0.1,
+                                           alpha = 0.1,
+                                           m = transmission,
+                                           N_age = N_age),
+                                step = 0,
+                                n_particles = n_particles,
+                                n_threads = 1L,
+                                seed = 1L,
+                                pars_multi = FALSE)
 sir_model$set_index(c(1L, 2L, 10L, 18L))
 # RUN
 for (obs_step in 1:n_steps) {

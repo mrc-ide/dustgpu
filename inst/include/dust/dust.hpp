@@ -1268,7 +1268,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
 
     // Pick particle index based on block, don't process if off the end
     i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
-    max_i = n_particles_each * j
+    max_i = n_particles_each * j;
   } else {
     // Otherwise CUDA thread number = particle
     i = blockIdx.x * blockDim.x + threadIdx.x;

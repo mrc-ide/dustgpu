@@ -21,7 +21,7 @@ namespace dust {
 template <typename T>
 struct rng_state_t {
   typedef T real_t;
-  static size_t size() {
+  static HOSTDEVICE size_t size() {
     return 4;
   }
   uint64_t state[4];

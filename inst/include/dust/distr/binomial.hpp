@@ -71,7 +71,7 @@ inline HOSTDEVICE T stirling_approx_tail(T k) {
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
 __nv_exec_check_disable__
 template <typename T>
-inline HOSTDEVICE T btrs(rng_state_t<T>& rng_state, real_t n, real_t p) {
+inline HOSTDEVICE T btrs(rng_state_t<T>& rng_state, T n, T p) {
   typedef T real_t;
   const real_t one = real_t(1.0f);
   const real_t half = real_t(0.5f);

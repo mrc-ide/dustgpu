@@ -1300,7 +1300,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
                        p_shared_real,
                        rng_block,
                        p_state_next);
-#ifdef __NVCC__
+#ifdef __CUDA_ARCH__
       __syncwarp();
 #endif
       dust::interleaved<real_t> tmp = p_state;

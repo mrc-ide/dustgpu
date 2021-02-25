@@ -13,8 +13,8 @@ transmission <- contact$matrix
 N_age <- length(age.limits)
 n_particles <- 100000L
 dt <- 0.25
-n_steps <- 20L
-steps_per_obs <- 20L
+n_steps <- 1000L
+steps_per_obs <- 10L
 
 pkgload::load_all()
 

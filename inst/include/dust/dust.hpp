@@ -1253,6 +1253,19 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
     }
     p_shared_real = shared_block_real;
 
+    /* TODO: replace above with new async copy
+    #include <cooperative_groups.h>
+    #include <cooperative_groups/memcpy_async.h>
+    auto block = cooperative_groups::this_thread_block();
+    cooperative_groups::memcpy_async(block, shared_block_int, p_shared_int, sizeof(int) * n_shared_int);
+    cooperative_groups::memcpy_async(block, shared_block_real, p_shared_real, sizeof(real_t) * n_shared_real);
+    cooperative_groups::wait(block);
+    ...
+    run_device
+    ...
+    block.sync();
+    */
+
     // Pick particle index based on block, don't process if off the end
     i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
     max_i = n_particles_each * j

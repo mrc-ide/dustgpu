@@ -17,7 +17,7 @@ HOSTDEVICE real_t odin_sum2(const container x, int from_i, int to_i, int from_j,
 // [[dust::param(S_ini, has_default = TRUE, default_value = 1000L, rank = 0, min = -Inf, max = Inf, integer = FALSE)]]
 class sirs {
 public:
-  typedef double real_t;
+  typedef float real_t;
   typedef dust::no_data data_t;
   struct shared_t {
     real_t alpha;

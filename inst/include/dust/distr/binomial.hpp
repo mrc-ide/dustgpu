@@ -54,7 +54,7 @@ inline HOSTDEVICE T binomial_inversion(rng_state_t<T>& rng_state, int n, T p) {
 template <typename T>
 inline HOSTDEVICE T stirling_approx_tail(T k) {
   const T one = T(1.0f);
-  float tail;
+  T tail;
   if (k <= 127) {
 #ifdef __CUDA_ARCH__
     tail = cudakTailValues[static_cast<int>(k)];

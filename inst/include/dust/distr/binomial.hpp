@@ -56,7 +56,11 @@ inline HOSTDEVICE T stirling_approx_tail(T k) {
   const T one = T(1.0f);
   float tail;
   if (k <= 127) {
+#ifdef __NVCC_ARCH__
+    tail = cudakTailValues[static_cast<int>(k)];
+#else
     tail = kTailValues[static_cast<int>(k)];
+#endif
   } else {
     double kp1sq = (k + 1) * (k + 1);
     tail = (one / 12 - (one / 360 - one / 1260 / kp1sq) / kp1sq) / (k + 1);

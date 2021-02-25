@@ -26,7 +26,7 @@ HOSTDEVICE inline real_t box_muller(rng_state_t<real_t>& rng_state) {
     u2 = dust::unif_rand(rng_state);
   } while (u1 <= epsilon);
 
-  return std::sqrt(static_cast<rael_t>(-2.0f) * std::log(u1)) * std::cos(two_pi * u2);
+  return std::sqrt(static_cast<real_t>(-2.0f) * std::log(u1)) * std::cos(two_pi * u2);
 }
 
 // The type declarations for mean and sd are ugly but prevent the

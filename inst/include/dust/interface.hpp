@@ -14,6 +14,8 @@
 #include <dust/rng_interface.hpp>
 #include <dust/interface_helpers.hpp>
 
+using namespace cpp11::literals;
+
 template <typename T>
 typename dust::pars_t<T> dust_pars(cpp11::list pars);
 

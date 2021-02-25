@@ -5,7 +5,7 @@
   // Exact function for this table is
   // std::lgamma(k + 1) - (std::log(std::sqrt(2 * M_PI)) +
   //    (k + 0.5) * std::log(k + 1) - (k + 1))
-__constant__ float kTailValues[] = {
+__constant__ float cudakTailValues[] = {
                                   0.041340695955409457f,
                                   0.027677925684998161f,
                                   0.020790672103765173f,
@@ -134,7 +134,7 @@ __constant__ float kTailValues[] = {
                                   0.00065616662294587513f,
                                   0.00065104034212026818f,
                                   0.00064599353800076642f};
-#else
+#endif
 const double kTailValues[] = {
                                   0.041340695955409457,
                                   0.027677925684998161,
@@ -264,6 +264,5 @@ const double kTailValues[] = {
                                   0.00065616662294587513,
                                   0.00065104034212026818,
                                   0.00064599353800076642f};
-#endif // nvcc
 
-#endif // include guards
+#endif

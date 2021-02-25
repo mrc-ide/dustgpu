@@ -62,7 +62,7 @@ inline HOSTDEVICE T stirling_approx_tail(T k) {
     tail = kTailValues[static_cast<int>(k)];
 #endif
   } else {
-    double kp1sq = (k + 1) * (k + 1);
+    T kp1sq = (k + 1) * (k + 1);
     tail = (one / 12 - (one / 360 - one / 1260 / kp1sq) / kp1sq) / (k + 1);
   }
   return tail;

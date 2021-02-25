@@ -437,7 +437,7 @@ public:
     _stale_host(false),
     _stale_device(true) {
 #ifdef __NVCC__
-    initialise_device(1); // TODO - set this from value in constructor
+    initialise_device(0); // TODO - set this from value in constructor
 #endif
     initialise(pars, step, n_particles, true);
     initialise_index();
@@ -456,7 +456,7 @@ public:
     _stale_host(false),
     _stale_device(true) {
 #ifdef __NVCC__
-    initialise_device(1); // TODO - set this from value in constructor
+    initialise_device(0); // TODO - set this from value in constructor
 #endif
     initialise(pars, step, _n_particles_each, true);
     initialise_index();

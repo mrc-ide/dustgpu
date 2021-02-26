@@ -1221,7 +1221,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   typedef typename T::real_t real_t;
   const size_t n_particles_each = n_particles / n_pars;
 
-#ifdef __NVCC__
+#ifdef __CUDA_ARCH__
   // Particle index i, and max index to process in the block
   int i, max_i;
 
@@ -1234,37 +1234,17 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   // If we're using it, use the first warp in the block to load the shared pars
   // into __shared__ L1
   extern __shared__ int shared_block[];
+  auto block = cooperative_groups::this_thread_block();
   if (use_shared_L1) {
     int * shared_block_int = shared_block;
-    if (threadIdx.x < warp_size) {
-      for (int lidx = threadIdx.x; lidx < n_shared_int; lidx += warp_size) {
-        shared_block_int[lidx] = p_shared_int[lidx];
-      }
-    }
+    cooperative_groups::memcpy_async(block, shared_block_int, p_shared_int, sizeof(int) * n_shared_int);
     p_shared_int = shared_block_int;
 
     // Must only have a single __shared__ definition, cast to use different
     // types within it
     real_t * shared_block_real = (real_t*)&shared_block[n_shared_int];
-    if (threadIdx.x < warp_size) {
-      for (int lidx = threadIdx.x; lidx < n_shared_real; lidx += warp_size) {
-        shared_block_real[lidx] = p_shared_real[lidx];
-      }
-    }
-    p_shared_real = shared_block_real;
-
-    /* TODO: replace above with new async copy
-    #include <cooperative_groups.h>
-    #include <cooperative_groups/memcpy_async.h>
-    auto block = cooperative_groups::this_thread_block();
-    cooperative_groups::memcpy_async(block, shared_block_int, p_shared_int, sizeof(int) * n_shared_int);
     cooperative_groups::memcpy_async(block, shared_block_real, p_shared_real, sizeof(real_t) * n_shared_real);
-    cooperative_groups::wait(block);
-    ...
-    run_device
-    ...
-    block.sync();
-    */
+    p_shared_real = shared_block_real;
 
     // Pick particle index based on block, don't process if off the end
     i = j * n_particles_each + (blockIdx.x % block_per_pars) * blockDim.x + threadIdx.x;
@@ -1274,7 +1254,10 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
     i = blockIdx.x * blockDim.x + threadIdx.x;
     max_i = n_particles;
   }
-  __syncthreads(); // Required to sync loads into L1 cache
+
+  // Required to sync loads into L1 cache
+  // Previously __syncthreads()
+  cooperative_groups::wait(block);
 
   if (i < max_i) {
 #else
@@ -1308,6 +1291,9 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
       p_state_next = tmp;
     }
     dust::put_rng_state(rng_block, p_rng);
+#ifdef __CUDA_ARCH__
+    block.sync();
+#endif
   }
 }
 

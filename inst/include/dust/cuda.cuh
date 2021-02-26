@@ -19,7 +19,11 @@
 #include <cuda_profiler_api.h>
 #include <device_launch_parameters.h>
 
-// cub functions (included with CUDA>=11; needs downloading otherwise)
+// CUDA 11 cooperative groups
+#include <cooperative_groups.h>
+#include <cooperative_groups/memcpy_async.h>
+
+// cub functions (included with CUDA>=11)
 #include <cub/device/device_select.cuh>
 
 // R/cpp11 includes

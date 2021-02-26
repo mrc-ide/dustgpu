@@ -137,11 +137,28 @@ HOSTDEVICE int rbinom(rng_state_t<real_t>& rng_state, int n,
 
   // Early exit:
   if (n == 0 || p == 0) {
-    return 0;
+    draw = 0;
   }
   if (p == 1) {
-    return n;
-  }
+    draw = n;
+  } else {
+    real_t q = p;
+    if (p > static_cast<real_t>(0.5f)) {
+      q = 1 - q;
+    }
+
+    if (n * q >= 10) {
+      draw = static_cast<int>(btrs(rng_state, n, q));
+    } else {
+      draw = static_cast<int>(binomial_inversion(rng_state, n, q));
+    }
+
+    if (p > static_cast<real_t>(0.5f)) {
+      draw = n - draw;
+    }
+#ifdef __CUDA_ARCH__
+  __syncwarp();
+#endif
 
   // TODO: Should control for this too, but not really clear what we
   // need to do to safely deal.
@@ -150,24 +167,6 @@ HOSTDEVICE int rbinom(rng_state_t<real_t>& rng_state, int n,
     return NaN;
     }
   */
-
-  real_t q = p;
-  if (p > static_cast<real_t>(0.5f)) {
-    q = 1 - q;
-  }
-
-  if (n * q >= 10) {
-    draw = static_cast<int>(btrs(rng_state, n, q));
-  } else {
-    draw = static_cast<int>(binomial_inversion(rng_state, n, q));
-  }
-
-  if (p > static_cast<real_t>(0.5f)) {
-    draw = n - draw;
-  }
-#ifdef __CUDA_ARCH__
-  __syncwarp();
-#endif
   return draw;
 }
 

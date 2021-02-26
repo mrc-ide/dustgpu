@@ -974,18 +974,26 @@ private:
   size_t _shared_size;
 
   // Sets device
-#ifdef __NVCC__
-  void initialise_device(const int device_id) {
+  template <typename U = T>
+  typename std::enable_if<!dust::has_gpu_support<U>::value, void>::type
+  initialise_device(const int device_id) {
+    throw std::invalid_argument("GPU support not enabled for this object");
+  }
+
+  template <typename U = T>
+  typename std::enable_if<dust::has_gpu_support<U>::value, void>::type
+  initialise_device(const int device_id) {
     CUDA_CALL(cudaSetDevice(device_id));
-    CUDA_CALL(cudaProfilerStart());
+    CUDA_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
 
     int shared_size = 0;
     CUDA_CALL(cudaDeviceGetAttribute(&shared_size,
                                      cudaDevAttrMaxSharedMemoryPerBlock,
                                      device_id));
     _shared_size = static_cast<size_t>(shared_size);
+
+    CUDA_CALL(cudaProfilerStart());
   }
-#endif
 
   void initialise(const pars_t& pars, const size_t step,
                   const size_t n_particles, bool set_state) {

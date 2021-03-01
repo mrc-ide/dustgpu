@@ -74,7 +74,7 @@ inline HOSTDEVICE int rpois(rng_state_t<real_t>& rng_state,
                              static_cast<real_t>(1.1328) /
                              (b - static_cast<real_t>(3.4));
 
-    const half = real_t(0.5);
+    const real_t half = real_t(0.5);
     while (true) {
       real_t u = dust::unif_rand<real_t>(rng_state);
       u -= half;

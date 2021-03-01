@@ -19,9 +19,11 @@
 #include <cuda_profiler_api.h>
 #include <device_launch_parameters.h>
 
-// CUDA 11 cooperative groups
 #include <cooperative_groups.h>
+// CUDA 11 cooperative groups
+#if __CUDACC_VER_MAJOR__ >= 11
 #include <cooperative_groups/memcpy_async.h>
+#endif
 
 // cub functions (included with CUDA>=11)
 #include <cub/device/device_select.cuh>
@@ -50,6 +52,26 @@ static void HandleCUDAError(const char *file, int line,
 }
 
 #define CUDA_CALL( err ) (HandleCUDAError(__FILE__, __LINE__ , err))
+
+template <typename T>
+void shared_mem_cpy(cooperative_groups::thread_block& block,
+                    T* global_ptr,
+                    T* shared_ptr,
+                    size_t n_elem) {
+#if __CUDACC_VER_MAJOR__ >= 11
+  cooperative_groups::memcpy_async(block,
+                                   global_ptr,
+                                   shared_ptr,
+                                   sizeof(T) * n_elem);
+#else
+  if (threadIdx.x < warp_size) {
+    for (int lidx = threadIdx.x; lidx < n_elem; lidx += warp_size) {
+      shared_ptr[lidx] = global_ptr[lidx];
+    }
+  }
+#endif
+}
+
 
 #else
 #define DEVICE

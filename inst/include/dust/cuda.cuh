@@ -72,7 +72,6 @@ DEVICE void shared_mem_cpy(cooperative_groups::thread_block& block,
 #endif
 }
 
-template <typename T>
 DEVICE void shared_mem_wait(cooperative_groups::thread_block& block) {
 #if __CUDACC_VER_MAJOR__ >= 11
   cooperative_groups::wait(block);

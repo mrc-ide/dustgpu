@@ -1264,8 +1264,7 @@ KERNEL void run_particles(size_t step_start, size_t step_end, size_t n_particles
   }
 
   // Required to sync loads into L1 cache
-  // Previously __syncthreads()
-  cooperative_groups::wait(block);
+  shared_mem_wait(block);
 
   if (i < max_i) {
 #else

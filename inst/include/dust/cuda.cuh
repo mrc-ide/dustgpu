@@ -56,7 +56,7 @@ static void HandleCUDAError(const char *file, int line,
 template <typename T>
 void shared_mem_cpy(cooperative_groups::thread_block& block,
                     T* global_ptr,
-                    T* shared_ptr,
+                    const T* shared_ptr,
                     size_t n_elem) {
 #if __CUDACC_VER_MAJOR__ >= 11
   cooperative_groups::memcpy_async(block,

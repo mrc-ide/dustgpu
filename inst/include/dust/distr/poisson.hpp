@@ -2,15 +2,17 @@
 #define DUST_DISTR_POISSON_HPP
 
 #include <cmath>
+#include <climits>
 
 namespace dust {
 namespace distr {
 
+__nv_exec_check_disable__
 template <typename real_t>
-int rpois(rng_state_t<real_t>& rng_state,
+inline HOSTDEVICE int rpois(rng_state_t<real_t>& rng_state,
           typename rng_state_t<real_t>::real_t lambda) {
   int x = 0;
-  if (lambda < 10) {
+  if (lambda < static_cast<real_t>(10.0)) {
     // Knuth's algorithm for generating Poisson random variates.
     // Given a Poisson process, the time between events is exponentially
     // distributed. If we have a Poisson process with rate lambda, then,
@@ -27,9 +29,9 @@ int rpois(rng_state_t<real_t>& rng_state,
     // expected time proportional to rate.
     while (true) {
       real_t u = dust::unif_rand<real_t>(rng_state);
-      prod = prod * u;
+      prod *= u;
       if (prod <= exp_neg_rate &&
-          x <= std::numeric_limits<int>::max()) {
+          x <= LONG_MAX) {
         break;
       }
       x++;
@@ -62,23 +64,26 @@ int rpois(rng_state_t<real_t>& rng_state,
     // Constants used to define the dominating distribution. Names taken
     // from Hormann's paper. Constants were chosen to define the tightest
     // G(u) for the inverse Poisson CDF.
-    const real_t b = 0.931 + 2.53 * std::sqrt(lambda);
-    const real_t a = -0.059 + 0.02483 * b;
+    const real_t b = static_cast<real_t>(0.931) + static_cast<real_t>(2.53) * std::sqrt(lambda);
+    const real_t a = static_cast<real_t>(-0.059) + static_cast<real_t>(0.02483) * b;
 
     // This is the inverse acceptance rate. At a minimum (when rate = 10),
     // this corresponds to ~75% acceptance. As the rate becomes larger, this
     // approaches ~89%.
-    const real_t inv_alpha = 1.1239 + 1.1328 / (b - 3.4);
+    const real_t inv_alpha = static_cast<real_t>(1.1239) +
+                             static_cast<real_t>(1.1328) /
+                             (b - static_cast<real_t>(3.4));
 
+    const half = real_t(0.5);
     while (true) {
       real_t u = dust::unif_rand<real_t>(rng_state);
-      u -= 0.5;
+      u -= half;
       real_t v = dust::unif_rand<real_t>(rng_state);
 
-      real_t u_shifted = 0.5 - std::fabs(u);
-      int k = floor((2 * a / u_shifted + b) * u + lambda + 0.43);
+      real_t u_shifted = half - std::fabs(u);
+      int k = floor((2 * a / u_shifted + b) * u + lambda + static_cast<real_t>(0.43));
 
-      if (k > std::numeric_limits<int>::max()) {
+      if (k > LONG_MAX) {
         // retry in case of overflow.
         continue; // # nocov
       }
@@ -87,8 +92,8 @@ int rpois(rng_state_t<real_t>& rng_state,
       // find a rectangle (-u_r, u_r) x (0, v_r) under the curve, such
       // that if v <= v_r and |u| <= u_r, then we can accept.
       // Here v_r = 0.9227 - 3.6224 / (b - 2) and u_r = 0.43.
-      if (u_shifted >= 0.07 &&
-          v <= 0.9277 - 3.6224 / (b - 2)) {
+      if (u_shifted >= static_cast<real_t>(0.07) &&
+          v <= static_cast<real_t>(0.9277) - static_cast<real_t>(3.6224) / (b - 2)) {
         x = k;
         break;
       }
@@ -107,6 +112,9 @@ int rpois(rng_state_t<real_t>& rng_state,
       }
     }
   }
+  #ifdef __CUDA_ARCH__
+  __syncwarp();
+  #endif
   return x;
 }
 

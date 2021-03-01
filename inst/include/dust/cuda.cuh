@@ -54,7 +54,7 @@ static void HandleCUDAError(const char *file, int line,
 #define CUDA_CALL( err ) (HandleCUDAError(__FILE__, __LINE__ , err))
 
 template <typename T>
-void shared_mem_cpy(cooperative_groups::thread_block& block,
+DEVICE void shared_mem_cpy(cooperative_groups::thread_block& block,
                     T* global_ptr,
                     const T* shared_ptr,
                     size_t n_elem) {
